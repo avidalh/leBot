@@ -44,8 +44,10 @@ okex = ccxt.okex()
 exchanges_avail = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, okex]
 exchanges_names = ['coinbasepro', 'poloniex', 'bittrex', 'binance', 'bitfinex', 'kraken', 'okex']
 exchanges_pairs_names = ['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT']
-exchanges_pairs_names2 = ['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT']
+exchanges_pairs_names = ['ETH/USDC', 'ETH/USDC', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT']
 
+for exchange in exchanges_avail:
+    print('{} Symbols: {}', exchange.symbols)
 
 
 while True:
@@ -57,7 +59,7 @@ while True:
     tickers = []
     for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, exchanges_pairs_names):
         try:
-            tickers.append(exchange.fetch_ticker(trading_pair))
+            tickers.append(exchange.fetch_ticker(trading_pair))  # TODO: use fetchOrderBook instead fetch tiker... it's more fast and has less traffic!!!!
             exchanges_avail_final.append(exchange)
             exchanges_names_final.append(name)
             exchanges_pairs_names_final.append(trading_pair)
