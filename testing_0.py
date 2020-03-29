@@ -1,6 +1,6 @@
 import ccxt
 from datetime import datetime
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 import time
 
 # collect the candlestick data from Binance
@@ -30,8 +30,10 @@ import time
 #                        low=low_data, close=close_data)])
 # fig.show()
 
+DEBUG = False
+REQUEST_PERIOD = 2
 
-
+# exchanges list
 coinbasepro = ccxt.coinbasepro()
 poloniex = ccxt.poloniex()
 bittrex = ccxt.bittrex()
@@ -41,68 +43,110 @@ kraken = ccxt.kraken()
 bitmex = ccxt.bitmex()
 okex = ccxt.okex()
 
-exchanges_avail = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, okex]
-exchanges_names = ['coinbasepro', 'poloniex', 'bittrex', 'binance', 'bitfinex', 'kraken', 'okex']
-exchanges_pairs_names = ['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT']
-exchanges_pairs_names = ['ETH/USDC', 'ETH/USDC', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT']
+
+# move them into a list
+exchanges_avail = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken,bitmex, okex]
 
 for exchange in exchanges_avail:
-    print('{} Symbols: {}', exchange.symbols)
+    exchange.load_markets()
+
+
+# get exchanges names
+exchanges_names = [exchange.name for exchange in exchanges_avail]
+
+# get the symbols (just for information)
+if DEBUG:
+    for exchange, name in zip(exchanges_avail, exchanges_names):
+        print('\n------------------------- ', name, ' -------------------------')
+        print(exchange.symbols)
+
+# exchanges_pairs_names = ['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT']
+# exchanges_pairs_names = ['ETH/USDC', 'ETH/USDC', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT', 'ETH/USDT']
+
+# pairs matrix
+symbols_matrix = [['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT'],
+                  ['BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD'],
+                  ['ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD'],
+                  ['BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD'],
+                  ['ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD'],
+                  ['LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD'],
+                  ['XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD']
+                 ]
+
+# si usamos varias monedas en el mismo script se realentiza demasiado! :-/
+
+# for exchange in exchanges_avail:
+#     print('{} Symbols: {}', exchange.symbols)
+
+
+
 
 
 while True:
-    start_time = time.time()
-    # sometimes exchanges get into maintenance so, if there is the case get that ex out of the list: 
-    exchanges_avail_final = []
-    exchanges_names_final = []
-    exchanges_pairs_names_final = []
-    tickers = []
-    for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, exchanges_pairs_names):
+    # sometimes exchanges get into maintenance so, just in case get that exchange out of the list: 
+    exchanges_avail_confirmed = []
+    exchanges_names_confirmed = []
+    exchanges_pairs_names_confirmed = []
+    # tickers = []
+
+    for symbols_row in symbols_matrix:  #[symbols_matrix[-1]]:
+        start_time = time.time()
+        bids = []
+        asks = []
+        spreads = []
+        for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, symbols_row):
+            try:
+                orderbook = exchange.fetch_order_book (trading_pair)
+                bids.append(orderbook['bids'][0][0] if len (orderbook['bids']) > 0 else None)
+                asks.append(orderbook['asks'][0][0] if len (orderbook['asks']) > 0 else None)
+                spreads.append((asks[-1] - bids[-1]) if (bids[-1] and asks[-1]) else None)
+                # print (exchange.id, 'market price', { 'bid': bid, 'ask': ask, 'spread': spread })
+
+                exchanges_avail_confirmed.append(exchange)
+                exchanges_names_confirmed.append(exchange.name)
+                exchanges_pairs_names_confirmed.append(trading_pair)
+
+            except:
+                pass
+
+        print('\n\t\tExchanges available for trading pair: ', trading_pair)
+        for name, ask, bid, spread in zip(exchanges_names_confirmed, asks, bids, spreads):
+            print(exchanges_names_confirmed.index(name), '-', name, '\t--> : ', ask, ', ', bid, ', ', spread)
+        for i in range(len(asks)):
+            print('-' * 40)
+            for j in range(len(asks)):
+                if i != j:
+
+                    exch_1 = exchanges_names_confirmed[i]
+                    exch_2 = exchanges_names_confirmed[j]
+                    bid_1 = asks[i]
+                    ask_2 = bids[j]
+                    delta_prices = bid_1 - ask_2
+                    delta_percentage = delta_prices / ask_2 * 100
+
+                    if abs(delta_percentage) >= 0.8:
+                        print('\033[92m {:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6} **** \033[0m'.format(exch_1,
+                                                                                                            exch_2,
+                                                                                                            bid_1,
+                                                                                                            ask_2,
+                                                                                                            delta_prices,
+                                                                                                            delta_percentage))
+                        # possible_opportunity()
+
+                    else:
+                        print('{:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6}'.format(exch_1,
+                                                                                            exch_2, 
+                                                                                            bid_1, 
+                                                                                            ask_2,
+                                                                                            delta_prices,
+                                                                                            delta_percentage))
+
         try:
-            tickers.append(exchange.fetch_ticker(trading_pair))  # TODO: use fetchOrderBook instead fetch tiker... it's more fast and has less traffic!!!!
-            exchanges_avail_final.append(exchange)
-            exchanges_names_final.append(name)
-            exchanges_pairs_names_final.append(trading_pair)
-        except:
+            time.sleep(REQUEST_PERIOD - time.time() + start_time)
+        except ValueError:
             pass
+        except KeyboardInterrupt:
+            raise
 
-    print()
-    for name, ticker in zip(exchanges_names_final, tickers):
-        print(exchanges_names_final.index(name), '-', name, '\t--> : ', ticker['ask'], ', ', ticker['bid'])
-    k = 0
-    for i in range(len(tickers)):
-        print('-' * 40)
-        for j in range(len(tickers)):
-            if i != j:
-                name_1 = exchanges_names_final[i]
-                name_2 = exchanges_names_final[j]
-                bid_1 = tickers[i]['bid']
-                ask_2 = tickers[j]['ask']
-                delta_prices = tickers[i]['bid'] - tickers[j]['ask']
-                delta_percentage =delta_prices / ask_2
-
-                if abs(delta_percentage) >= 0.004:
-                    print('\033[92m {:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6%}\033[0m'.format(name_1,
-                                                                                                  name_2,
-                                                                                                  bid_1,
-                                                                                                  ask_2,
-                                                                                                  delta_prices,
-                                                                                                  delta_percentage))
-                else:
-                    print('{:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6%}'.format(name_1,
-                                                                                  name_2, 
-                                                                                  bid_1, 
-                                                                                  ask_2,
-                                                                                  delta_prices,
-                                                                                  delta_percentage))
-                k += 1
-
-    try:
-        time.sleep(2 - time.time() + start_time)
-    except ValueError:
-        pass
-    except KeyboardInterrupt:
-        raise
-
-    print("--- %s seconds ---" % (time.time() - start_time))
-    print()
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print()
