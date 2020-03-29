@@ -32,6 +32,7 @@ import time
 
 DEBUG = False
 REQUEST_PERIOD = 2
+PROFIT_THRESHOLD = 0.8 
 
 # exchanges list
 coinbasepro = ccxt.coinbasepro()
@@ -87,6 +88,7 @@ while True:
     exchanges_avail_confirmed = []
     exchanges_names_confirmed = []
     exchanges_pairs_names_confirmed = []
+    # exchanges_fees_confirmed = []
     # tickers = []
 
     for symbols_row in symbols_matrix:  #[symbols_matrix[-1]]:
@@ -94,12 +96,16 @@ while True:
         bids = []
         asks = []
         spreads = []
+        fees_taker = []
+        fees_maker = []
         for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, symbols_row):
             try:
                 orderbook = exchange.fetch_order_book (trading_pair)
                 bids.append(orderbook['bids'][0][0] if len (orderbook['bids']) > 0 else None)
                 asks.append(orderbook['asks'][0][0] if len (orderbook['asks']) > 0 else None)
                 spreads.append((asks[-1] - bids[-1]) if (bids[-1] and asks[-1]) else None)
+                fees_taker.append(exchange.markets[trading_pair]['taker'])
+                fees_maker.append(exchange.markets[trading_pair]['maker'])
                 # print (exchange.id, 'market price', { 'bid': bid, 'ask': ask, 'spread': spread })
 
                 exchanges_avail_confirmed.append(exchange)
@@ -121,25 +127,34 @@ while True:
                     exch_2 = exchanges_names_confirmed[j]
                     bid_1 = asks[i]
                     ask_2 = bids[j]
+                    fee_1 = fees_maker[i]  # double check the order here!!!!
+                    fee_2 = fees_taker[j]  # and here
                     delta_prices = bid_1 - ask_2
                     delta_percentage = delta_prices / ask_2 * 100
 
-                    if abs(delta_percentage) >= 0.8:
-                        print('\033[92m {:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6} **** \033[0m'.format(exch_1,
+                    if abs(delta_percentage) >= (fee_1*100*2 + fee_2*100*2):
+                        print('\033[92m {:12} / {:12} \t {:8.3f} / {:8.3f} --> {:7.3} {:7.3} {:7.3} {:7.3} {:7.3} **** \033[0m'.format(exch_1,
                                                                                                             exch_2,
                                                                                                             bid_1,
                                                                                                             ask_2,
                                                                                                             delta_prices,
-                                                                                                            delta_percentage))
-                        # possible_opportunity()
+                                                                                                            delta_percentage,
+                                                                                                            fee_1*100,
+                                                                                                            fee_2*100,
+                                                                                                            fee_1*100*2 + fee_2*100*2))
+
+                        # possible_opportunity() ****************** operate here **********************
 
                     else:
-                        print('{:15} / {:15} \t {:8.3f} / {:8.3f} --> {:5.3} {:9.6}'.format(exch_1,
+                        print('{:12} / {:12} \t {:8.3f} / {:8.3f} --> {:5.3} {:7.3} {:7.3} {:7.3} {:7.3}'.format(exch_1,
                                                                                             exch_2, 
                                                                                             bid_1, 
                                                                                             ask_2,
                                                                                             delta_prices,
-                                                                                            delta_percentage))
+                                                                                            delta_percentage,
+                                                                                            fee_1*100,
+                                                                                            fee_2*100,
+                                                                                            fee_1*100*2 + fee_2*100*2))
 
         try:
             time.sleep(REQUEST_PERIOD - time.time() + start_time)
