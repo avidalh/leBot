@@ -3,6 +3,10 @@ from datetime import datetime
 # import plotly.graph_objects as go
 import time
 
+from ccxt.base.decimal_to_precision import ROUND                 # noqa F401
+
+
+'''
 # collect the candlestick data from Binance
 # binance = ccxt.binance()
 # binance_trading_pair = 'BTC/USDT'
@@ -29,10 +33,16 @@ import time
 #                        open=open_data, high=high_data,
 #                        low=low_data, close=close_data)])
 # fig.show()
+'''
 
+
+# parameters
 DEBUG = False
 REQUEST_PERIOD = 2
 PROFIT_THRESHOLD = 0.8 
+TRADING_SIZE_USD = 20  # USD or USDT, or equivalent amount in other coins
+TRADING_SIZE_BTC = 0.0030
+
 
 # exchanges list
 coinbasepro = ccxt.coinbasepro()
@@ -44,15 +54,17 @@ kraken = ccxt.kraken()
 bitmex = ccxt.bitmex()
 okex = ccxt.okex()
 
-
 # move them into a list
-exchanges_avail = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken,bitmex, okex]
+exchanges_avail = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, bitmex, okex]
 
+# load the markets
 for exchange in exchanges_avail:
-    exchange.load_markets()
+    try:
+        exchange.load_markets()
+    except:
+        pass
 
-
-# get exchanges names
+# and get exchanges names
 exchanges_names = [exchange.name for exchange in exchanges_avail]
 
 # get the symbols (just for information)
@@ -67,18 +79,76 @@ if DEBUG:
 # pairs matrix
 symbols_matrix = [['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT'],
                   ['BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD'],
+
                   ['ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD'],
                   ['BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD'],
+
                   ['ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD'],
                   ['LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD'],
-                  ['XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD']
+
+                  ['XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD'],
+
+                  ['ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC'],
+                  ['ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH'],
+                  ['ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT'],
+                  ['ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC'],
+                  
+                  ['IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC'],
+                  ['IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH'],
+                  ['IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT']
                  ]
 
-# si usamos varias monedas en el mismo script se realentiza demasiado! :-/
+# creates an json's array with the balances:[{exchange_name:{USDT: xxx.xx}, {BTC: yyy.yyy}}]
+balances = {}
+amount_per_coin = 1000
+def round_figure(f): return float(ccxt.decimal_to_precision(f, rounding_mode=ROUND, precision=8))
+for name in exchanges_names:  # fill the balances, this will be populated using the market information in the real life
+    balances[name] = {'BTC': round_figure(amount_per_coin / 6500),
+                      'ETH': round_figure(amount_per_coin /133.32),
+                      'BCH': round_figure(amount_per_coin /221.9), 
+                      'ZEC': round_figure(amount_per_coin /30.7),
+                      'LTC': round_figure(amount_per_coin /39.1),
+                      'XRP': round_figure(amount_per_coin /0.178),
+                      'ADA': round_figure(amount_per_coin /0.03034),
+                      'IOTA': round_figure(amount_per_coin /.1445),
+                      'USDT': round_figure(amount_per_coin),
+                      'USDC': round_figure(amount_per_coin),
+                      'USD': round_figure(amount_per_coin)}
 
 # for exchange in exchanges_avail:
 #     print('{} Symbols: {}', exchange.symbols)
 
+# trading size per coin, aprox $20
+trading_sizes = {'BTC': .0030,
+                 'ETH': 0.086,
+                 'BCH': 0.135,
+                 'ZEC': 0.666,
+                 'LTC': 0.51,
+                 'XRP': 117.0,
+                 'ADA': 666.0,
+                 'IOTA': 142.0,
+                 'USDT': 20.0,
+                 'USDC': 20.0,
+                 'USD': 20.0}
+
+# prices matrix
+closing_prices = {
+                 'BTC': 0.0,
+                 'ETH': 0.0,
+                 'BCH': 0.0,
+                 'ZEC': 0.0,
+                 'LTC': 0.0,
+                 'XRP': 0.0,
+                 'ADA': 0.0,
+                 'IOTA': 0.0,
+                 'USDT': 0.0,
+                 'USDC': 0.0,
+                 'USD': 0.0}
+
+def print_balances():
+    for exchange in balances:
+        for key in exchange:
+            pass
 
 
 
@@ -119,48 +189,78 @@ while True:
         for name, ask, bid, spread in zip(exchanges_names_confirmed, asks, bids, spreads):
             print(exchanges_names_confirmed.index(name), '-', name, '\t--> : ', ask, ', ', bid, ', ', spread)
         for i in range(len(asks)):
-            print('-' * 40)
+            # print('-' * 40)
             for j in range(len(asks)):
                 if i != j:
 
                     exch_1 = exchanges_names_confirmed[i]
                     exch_2 = exchanges_names_confirmed[j]
-                    bid_1 = asks[i]
-                    ask_2 = bids[j]
+                    bid_1 = bids[i]
+                    ask_2 = asks[j]
                     fee_1 = fees_maker[i]  # double check the order here!!!!
                     fee_2 = fees_taker[j]  # and here
+                    fee_sum = fee_1 + fee_2
                     delta_prices = bid_1 - ask_2
-                    delta_percentage = delta_prices / ask_2 * 100
+                    delta_percentage = delta_prices / ask_2
 
-                    if abs(delta_percentage) >= (fee_1*100*2 + fee_2*100*2):
-                        print('\033[92m {:12} / {:12} \t {:8.3f} / {:8.3f} --> {:7.3} {:7.3} {:7.3} {:7.3} {:7.3} **** \033[0m'.format(exch_1,
+                    if delta_percentage >= 0.004:  #fee_sum:
+                        print('-' * 40)
+                        print('\033[92m {},\t {},\t {:8.3f},\t {:8.3f},\t {:7.3},\t {:7.3%},\t {:7.3%},\t {:7.3%},\t {:7.3%} \033[0m'.format(exch_1,
                                                                                                             exch_2,
                                                                                                             bid_1,
                                                                                                             ask_2,
                                                                                                             delta_prices,
                                                                                                             delta_percentage,
-                                                                                                            fee_1*100,
-                                                                                                            fee_2*100,
-                                                                                                            fee_1*100*2 + fee_2*100*2))
+                                                                                                            fee_1,
+                                                                                                            fee_2,
+                                                                                                            fee_sum))
 
                         # possible_opportunity() ****************** operate here **********************
+                        print('Opportunity...')
+                        bal_exch_1_coin_1 = balances[exch_1][trading_pair.split('/')[0]]
+                        bal_exch_2_coin_1 = balances[exch_2][trading_pair.split('/')[0]]
+                        bal_exch_1_coin_2 = balances[exch_1][trading_pair.split('/')[1]]
+                        bal_exch_2_coin_2 = balances[exch_2][trading_pair.split('/')[1]]
+                        sell_size = trading_sizes[trading_pair.split('/')[0]]
+                        buy_size = trading_sizes[trading_pair.split('/')[1]]
+                        if  bal_exch_1_coin_1 >= sell_size and  bal_exch_2_coin_2 >= buy_size:
+                            # lets operate
+                            print(bal_exch_1_coin_1, bal_exch_1_coin_2, bal_exch_2_coin_1, bal_exch_2_coin_2)
+                            
+                            bal_exch_1_coin_1 -= (sell_size * (1+fee_1))
+                            bal_exch_1_coin_2 += (sell_size * bid_1)
+
+                            bal_exch_2_coin_2 -= (buy_size * (1+fee_2))
+                            bal_exch_2_coin_1 += (buy_size / ask_2)  
+
+                            balances[exch_1][trading_pair.split('/')[0]] = bal_exch_1_coin_1
+                            balances[exch_2][trading_pair.split('/')[0]] = bal_exch_2_coin_1
+                            balances[exch_1][trading_pair.split('/')[1]] = bal_exch_1_coin_2
+                            balances[exch_2][trading_pair.split('/')[1]] = bal_exch_2_coin_2
+                            print(bal_exch_1_coin_1, bal_exch_1_coin_2, bal_exch_2_coin_1, bal_exch_2_coin_2,)
+                        else:
+                            print('No cash available on any of those coins...')
 
                     else:
-                        print('{:12} / {:12} \t {:8.3f} / {:8.3f} --> {:5.3} {:7.3} {:7.3} {:7.3} {:7.3}'.format(exch_1,
-                                                                                            exch_2, 
-                                                                                            bid_1, 
-                                                                                            ask_2,
-                                                                                            delta_prices,
-                                                                                            delta_percentage,
-                                                                                            fee_1*100,
-                                                                                            fee_2*100,
-                                                                                            fee_1*100*2 + fee_2*100*2))
+                        pass
+                        # print('No opportunity...')
+                        # print('-' * 40)
+                        # print('{:12} / {:12} \t {:8.3f} / {:8.3f} --> {:5.3} {:7.3} {:7.3} {:7.3} {:7.3}'.format(exch_1,
+                        #                                                                     exch_2, 
+                        #                                                                     bid_1, 
+                        #                                                                     ask_2,
+                        #                                                                     delta_prices,
+                        #                                                                     delta_percentage,
+                        #                                                                     fee_1*100,
+                        #                                                                     fee_2*100,
+                        #                                                                     fee_1*100*2 + fee_2*100*2))
 
         try:
             time.sleep(REQUEST_PERIOD - time.time() + start_time)
         except ValueError:
             pass
         except KeyboardInterrupt:
+            print('Exiting the app...')
             raise
 
         print("--- %s seconds ---" % (time.time() - start_time))
