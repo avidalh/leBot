@@ -5,37 +5,6 @@ import time
 
 from ccxt.base.decimal_to_precision import ROUND                 # noqa F401
 
-
-'''
-# collect the candlestick data from Binance
-# binance = ccxt.binance()
-# binance_trading_pair = 'BTC/USDT'
-# candles_binance = binance.fetch_ohlcv(trading_pair, '1m')
-
-# coinbase = ccxt.coinbase()
-# candles_coinbase = binance.fetch_ticker(trading_pair)  #fetch_ohlcv(trading_pair, '1m')
-
-
-# dates = []
-# open_data = []
-# high_data = []
-# low_data = []
-# close_data = []
-# format the data to match the charting library
-# for candle in candles_binance:
-#     dates.append(datetime.fromtimestamp(candle[0] / 1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
-#     open_data.append(candle[1])
-#     high_data.append(candle[2])
-#     low_data.append(candle[3])
-#     close_data.append(candle[4])
-# plot the candlesticks
-# fig = go.Figure(data=[go.Candlestick(x=dates,
-#                        open=open_data, high=high_data,
-#                        low=low_data, close=close_data)])
-# fig.show()
-'''
-
-
 # parameters
 DEBUG = False
 REQUEST_PERIOD = 2
@@ -101,7 +70,7 @@ symbols_matrix = [['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', '
 # creates an json's array with the balances:[{exchange_name:{USDT: xxx.xx}, {BTC: yyy.yyy}}]
 balances = {}
 amount_per_coin = 1000
-def round_figure(f): return float(ccxt.decimal_to_precision(f, rounding_mode=ROUND, precision=8))
+def round_figure(f, p=8): return float(ccxt.decimal_to_precision(f, rounding_mode=ROUND, precision=p))
 for name in exchanges_names:  # fill the balances, this will be populated using the market information in the real life
     balances[name] = {'BTC': round_figure(amount_per_coin / 6500),
                       'ETH': round_figure(amount_per_coin /133.32),
@@ -168,6 +137,7 @@ while True:
         spreads = []
         fees_taker = []
         fees_maker = []
+        precision = []
         for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, symbols_row):
             try:
                 orderbook = exchange.fetch_order_book (trading_pair)
@@ -176,6 +146,10 @@ while True:
                 spreads.append((asks[-1] - bids[-1]) if (bids[-1] and asks[-1]) else None)
                 fees_taker.append(exchange.markets[trading_pair]['taker'])
                 fees_maker.append(exchange.markets[trading_pair]['maker'])
+
+                # precision.append([exchange.currencies[trading_pair.split('/')[0]]['precision'],
+                #                   exchange.currencies[trading_pair.split('/')[1]]['precision']])
+
                 # print (exchange.id, 'market price', { 'bid': bid, 'ask': ask, 'spread': spread })
 
                 exchanges_avail_confirmed.append(exchange)
@@ -202,8 +176,10 @@ while True:
                     fee_sum = fee_1 + fee_2
                     delta_prices = bid_1 - ask_2
                     delta_percentage = delta_prices / ask_2
+                    # exch_1_precision = precision[i]
+                    # exch_2_precision = precision[j]
 
-                    if delta_percentage >= 0.004:  #fee_sum:
+                    if delta_percentage >= fee_sum*1.05:
                         print('-' * 40)
                         print('\033[92m {},\t {},\t {:8.3f},\t {:8.3f},\t {:7.3},\t {:7.3%},\t {:7.3%},\t {:7.3%},\t {:7.3%} \033[0m'.format(exch_1,
                                                                                                             exch_2,
@@ -228,10 +204,15 @@ while True:
                             print(bal_exch_1_coin_1, bal_exch_1_coin_2, bal_exch_2_coin_1, bal_exch_2_coin_2)
                             
                             bal_exch_1_coin_1 -= (sell_size * (1+fee_1))
+                            # bal_exch_1_coin_1 = round_figure(bal_exch_1_coin_1, exch_1_precision[0])
                             bal_exch_1_coin_2 += (sell_size * bid_1)
+                            # bal_exch_1_coin_1 = round_figure(bal_exch_1_coin_1, exch_1_precision[1])
 
                             bal_exch_2_coin_2 -= (buy_size * (1+fee_2))
-                            bal_exch_2_coin_1 += (buy_size / ask_2)  
+                            # bal_exch_2_coin_2 = round_figure(bal_exch_2_coin_2, exch_2_precision[1])
+                            bal_exch_2_coin_1 += (buy_size / ask_2)
+                            # bal_exch_1_coin_1 = round_figure(bal_exch_1_coin_1, exch_2_precision[0])
+                            
 
                             balances[exch_1][trading_pair.split('/')[0]] = bal_exch_1_coin_1
                             balances[exch_2][trading_pair.split('/')[0]] = bal_exch_2_coin_1
