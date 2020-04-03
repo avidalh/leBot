@@ -140,7 +140,7 @@ while True:
         precision = []
         for exchange, name, trading_pair  in zip(exchanges_avail, exchanges_names, symbols_row):
             try:
-                orderbook = exchange.fetch_order_book (trading_pair)
+                orderbook = exchange.fetch_order_book (trading_pair, limit=4)
                 bids.append(orderbook['bids'][0][0] if len (orderbook['bids']) > 0 else None)
                 asks.append(orderbook['asks'][0][0] if len (orderbook['asks']) > 0 else None)
                 spreads.append((asks[-1] - bids[-1]) if (bids[-1] and asks[-1]) else None)
