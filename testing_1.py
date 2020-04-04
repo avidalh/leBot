@@ -14,15 +14,48 @@ USE_THREADING = True  # accelerates markets loading by 4.64/0.035 = 132x!
 
 def create_exchanges():
     ''' instantiate and load the markets'''
-    coinbasepro = ccxt.coinbasepro()
-    poloniex = ccxt.poloniex()
-    bittrex = ccxt.bittrex()
-    binance = ccxt.binance()
-    bitfinex = ccxt.bitfinex()
-    kraken = ccxt.kraken()
-    bitmex = ccxt.bitmex()
-    okex = ccxt.okex()
+    coinbasepro = ccxt.coinbasepro({
+        'apiKey': api_keys.coinbasepro['apiKey'],
+        'secret': api_keys.coinbasepro['secret'],
+        })
+
+    poloniex = ccxt.poloniex({
+        'apiKey': api_keys.poloniex['apiKey'],
+        'secret': api_keys.poloniex['secret'],
+        })
+
+    bittrex = ccxt.bittrex({
+        'apiKey': api_keys.bittrex['apiKey'],
+        'secret': api_keys.bittrex['secret'],
+        })
+
+    binance = ccxt.binance({
+        'apiKey': api_keys.binance['apiKey'],
+        'secret': api_keys.binance['secret'],
+        })
+
+    bitfinex = ccxt.bitfinex({
+        'apiKey': api_keys.bitfinex['apiKey'],
+        'secret': api_keys.bitfinex['secret'],
+        })
+
+    kraken = ccxt.kraken({
+        'apiKey': api_keys.kraken['apiKey'],
+        'secret': api_keys.kraken['secret'],
+        })
+
+    bitmex = ccxt.bitmex({
+        'apiKey': api_keys.bitmex['apiKey'],
+        'secret': api_keys.bitmex['secret'],
+        })
+
+    okex = ccxt.okex({
+        'apiKey': api_keys.okex['apiKey'],
+        'secret': api_keys.okex['secret'],
+        })
+
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, bitmex, okex]
+
     return exchanges
 
 
