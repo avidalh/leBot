@@ -114,6 +114,12 @@ def get_trading_pairs():  # TODO: Check the pairs per exchange
     return symbols_matrix
 
 
+def get_market_pairs(exchanges):
+    pairs = list()
+    for exchange in exchanges:
+        pairs.append(exchange.markets.keys())
+    return pairs
+
 class Balance:
     ''' balance class '''    
     def __init__(self):
@@ -186,6 +192,27 @@ def get_order_books(exchanges, symbols_matrix):
 
     
     return 0
+    
+
+def pairs_generator(exchanges):
+    ''' optimize the empairment to spread the empairments uniformly avoiding overpass request limits
+    '''
+    pairs = list()
+    for i, j in zip([0,2,4,6, 0,1,4,5, 0,1,4,5, 0,1,2,3, 0,1,2,3, 1,0,3,2, 0,1,2,3],
+                    [1,3,5,7, 2,3,6,7, 3,2,7,6, 4,5,6,7, 5,4,7,6, 7,6,5,4, 7,6,5,4]):
+        pairs.append([exchanges[i], exchanges[j]])
+
+    return pairs
+
+def cross_exch_pairs(exch_pairs):
+    for exch_pair in exch_pairs:
+        print()
+        print('_' *30)
+        print(exch_pair)
+        for pair in exch_pair[0].markets.keys():
+            if pair in exch_pair[1].markets.keys():  # crossing is possible!
+                print(pair)
+    return 0
 
 
 def main():
@@ -193,10 +220,13 @@ def main():
     exchanges = create_exchanges()
     load_markets(exchanges)
     symbols_matrix = get_trading_pairs()
-
+    # print(get_market_pairs(exchanges))
     balances = init_balances(exchanges)
+    exch_pairs = pairs_generator(exchanges)
 
-    get_order_books(exchanges, symbols_matrix)
+    cross_exch_pairs(exch_pairs)
+    
+
     
 
 
