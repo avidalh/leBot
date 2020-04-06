@@ -1,0 +1,111 @@
+______________________________
+[ccxt.coinbasepro(), ccxt.poloniex()]
+['ATOM/BTC', 'KNC/BTC', 'BAT/ETH', 'XRP/BTC', 'XLM/BTC', 'BCH/BTC', 'LTC/BTC', 'EOS/BTC', 'ETC/BTC', 'REP/BTC', 'XTZ/BTC', 'ZEC/USDC', 'BTC/USDC', 'ZEC/BTC', 'DASH/BTC', 'ZRX/BTC', 'ETH/USDC', 'ETH/BTC']
+
+______________________________
+[ccxt.bittrex(), ccxt.binance()]
+['ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADX/BTC', 'ADX/ETH', 'ANKR/BTC', 'ARDR/BTC', 'ARK/BTC', 'ATOM/BTC', 'ATOM/USDT', 'BAT/BTC', 'BAT/ETH', 'BAT/USDT', 'BCH/BTC', 'BCH/USDT', 'BNT/BTC', 'BNT/ETH', 'BSV/BTC', 'BSV/USDT', 'BTC/EUR', 'BTC/USDT', 'BTS/BTC', 'BTT/BTC', 'BTT/USDT', 'CND/BTC', 'CTXC/BTC', 'CVC/BTC', 'CVC/ETH', 'DASH/BTC', 'DASH/ETH', 'DASH/USDT', 'DCR/BTC', 'DENT/BTC', 'DNT/BTC', 'DOGE/BTC', 'DOGE/USDT', 'DUSK/BTC', 'ELF/BTC', 'ENG/BTC', 'ENG/ETH', 'ENJ/BTC', 'ENJ/USDT', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'ETC/BTC', 'ETC/ETH', 'ETC/USDT', 'ETH/BTC', 'ETH/EUR', 'ETH/USDT', 'GNT/BTC', 'GNT/ETH', 'GO/BTC', 'GRS/BTC', 'GTO/BTC', 'HBAR/BTC', 'HBAR/USDT', 'IOST/BTC', 'IOTA/BTC', 'IOTX/BTC', 'KMD/BTC', 'LINK/BTC', 'LINK/ETH', 'LINK/USDT', 'LOOM/BTC', 'LRC/BTC', 'LSK/BTC', 'LTC/BTC', 'LTC/ETH', 'LTC/USDT', 'MANA/BTC', 'MANA/ETH', 'MCO/BTC', 'MCO/ETH', 'MFT/BTC', 'MTL/BTC', 'NAV/BTC', 'NEO/BTC', 'NEO/ETH', 'NEO/USDT', 'NKN/BTC', 'NPXS/BTC', 'NPXS/ETH', 'NPXS/USDT', 'NXS/BTC', 'OMG/BTC', 'OMG/ETH', 'OMG/USDT', 'ONG/BTC', 'ONT/BTC', 'ONT/USDT', 'OST/BTC', 'PAX/BTC', 'PIVX/BTC', 'POWR/BTC', 'POWR/ETH', 'QTUM/BTC', 'QTUM/ETH', 'RCN/BTC', 'REP/BTC', 'REP/ETH', 'RLC/BTC', 'RVN/BTC', 'RVN/USDT', 'SC/BTC', 'SC/ETH', 'SNT/BTC', 'SNT/ETH', 'STEEM/BTC', 'STORJ/BTC', 'STORM/BTC', 'STORM/ETH', 'STPT/BTC', 'STRAT/BTC', 'STRAT/ETH', 'SYS/BTC', 'TRX/BTC', 'TRX/ETH', 'TRX/USDT', 'TUSD/BTC', 'TUSD/ETH', 'TUSD/USDT', 'VET/BTC', 'VET/USDT', 'VIA/BTC', 'VIB/BTC', 'VIB/ETH', 'VITE/BTC', 'WAVES/BTC', 'WAVES/ETH', 'XEM/BTC', 'XEM/ETH', 'XLM/BTC', 'XLM/ETH', 'XLM/USDT', 'XMR/BTC', 'XMR/ETH', 'XMR/USDT', 'XRP/BTC', 'XRP/ETH', 'XRP/USDT', 'XTZ/BTC', 'XTZ/USDT', 'XVG/BTC', 'XZC/BTC', 'ZEC/BTC', 'ZEC/ETH', 'ZEC/USDT', 'ZEN/BTC', 'ZIL/BTC', 'ZRX/BTC', 'ZRX/ETH', 'ZRX/USDT']
+
+______________________________
+[ccxt.bitfinex(), ccxt.kraken()]
+['BTC/USD', 'LTC/USD', 'LTC/BTC', 'ETH/USD', 'ETH/BTC', 'ETC/BTC', 'ETC/USD', 'ZEC/USD', 'ZEC/BTC', 'XMR/USD', 'XMR/BTC', 'DASH/USD', 'DASH/BTC', 'BTC/EUR', 'BTC/JPY', 'XRP/USD', 'XRP/BTC', 'EOS/USD', 'EOS/BTC', 'EOS/ETH', 'OMG/USD', 'OMG/BTC', 'OMG/ETH', 'QTUM/USD', 'QTUM/BTC', 'BAT/USD', 'BAT/BTC', 'BAT/ETH', 'TRX/USD', 'TRX/BTC', 'TRX/ETH', 'REP/USD', 'REP/BTC', 'REP/ETH', 'BTC/GBP', 'ETH/EUR', 'ETH/JPY', 'ETH/GBP', 'EOS/EUR', 'DAI/USD', 'XLM/USD', 'XLM/EUR', 'XLM/BTC', 'XTZ/USD', 'XTZ/BTC', 'TRX/EUR', 'MLN/USD', 'BCH/USD', 'BCH/BTC', 'USDT/USD', 'USDC/USD', 'BTC/USDT', 'ETH/USDT', 'GNO/USD', 'ATOM/USD', 'ATOM/BTC', 'ATOM/ETH', 'ALGO/USD', 'ALGO/BTC', 'USDC/USDT']
+
+______________________________
+[ccxt.bitmex(), ccxt.okex()]
+[]
+
+______________________________
+[ccxt.coinbasepro(), ccxt.bittrex()]
+['LINK/ETH', 'ATOM/BTC', 'BAT/ETH', 'EOS/USD', 'BCH/EUR', 'XRP/BTC', 'XLM/BTC', 'LTC/USD', 'BCH/BTC', 'ETC/USD', 'LTC/BTC', 'XRP/USD', 'EOS/BTC', 'BTC/USD', 'ZRX/USD', 'ETC/BTC', 'REP/BTC', 'XTZ/BTC', 'ETH/EUR', 'LINK/USD', 'ETH/USD', 'BTC/EUR', 'ATOM/USD', 'DASH/USD', 'ZEC/BTC', 'XTZ/USD', 'DASH/BTC', 'ZRX/BTC', 'BCH/USD', 'ETH/BTC']
+
+______________________________
+[ccxt.poloniex(), ccxt.binance()]
+['BCN/BTC', 'BTS/BTC', 'DASH/BTC', 'DOGE/BTC', 'LTC/BTC', 'XLM/BTC', 'XEM/BTC', 'XMR/BTC', 'XRP/BTC', 'BTC/USDT', 'DASH/USDT', 'LTC/USDT', 'XLM/USDT', 'XMR/USDT', 'XRP/USDT', 'ETH/BTC', 'ETH/USDT', 'SC/BTC', 'DCR/BTC', 'LSK/BTC', 'STEEM/BTC', 'ETC/BTC', 'ETC/ETH', 'ETC/USDT', 'REP/BTC', 'REP/ETH', 'ARDR/BTC', 'ZEC/BTC', 'ZEC/ETH', 'ZEC/USDT', 'STRAT/BTC', 'GNT/BTC', 'ZRX/BTC', 'ZRX/ETH', 'CVC/BTC', 'OMG/BTC', 'GAS/BTC', 'STORJ/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'SNT/BTC', 'KNC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/USDT', 'LOOM/BTC', 'DOGE/USDT', 'LSK/USDT', 'ZRX/USDT', 'QTUM/BTC', 'QTUM/USDT', 'BTC/USDC', 'ETH/USDC', 'MANA/BTC', 'BNT/BTC', 'BCH/BTC', 'BCH/USDC', 'BSV/BTC', 'BSV/USDC', 'XRP/USDC', 'XLM/USDC', 'DOGE/USDC', 'LTC/USDC', 'ZEC/USDC', 'POLY/BTC', 'ATOM/BTC', 'ATOM/USDC', 'ATOM/USDT', 'EOS/USDC', 'ETC/USDC', 'BSV/USDT', 'BCH/USDT', 'TRX/BTC', 'TRX/USDC', 'TRX/USDT', 'BTT/BTC', 'BTT/USDT', 'BTT/TRX', 'WIN/USDT', 'WIN/TRX', 'LINK/BTC', 'XTZ/BTC', 'XTZ/USDT', 'BEAR/USDT', 'BULL/USDT', 'BTC/PAX', 'ETH/PAX', 'PAX/USDT']
+
+______________________________
+[ccxt.bitfinex(), ccxt.bitmex()]
+['BTC/USD', 'ETH/USD', 'XRP/USD']
+
+______________________________
+[ccxt.kraken(), ccxt.okex()]
+['ADA/ETH', 'ADA/BTC', 'ALGO/ETH', 'ALGO/BTC', 'ATOM/ETH', 'ATOM/BTC', 'BAT/BTC', 'BCH/BTC', 'DAI/USDT', 'DASH/BTC', 'EOS/ETH', 'EOS/BTC', 'ETH/DAI', 'ETH/USDC', 'ETH/USDT', 'ICX/BTC', 'LINK/ETH', 'LINK/BTC', 'LSK/BTC', 'NANO/ETH', 'NANO/BTC', 'OMG/ETH', 'OMG/BTC', 'QTUM/ETH', 'QTUM/BTC', 'SC/ETH', 'SC/BTC', 'TRX/ETH', 'TRX/BTC', 'USDC/USDT', 'WAVES/ETH', 'WAVES/BTC', 'BTC/DAI', 'BTC/USDC', 'BTC/USDT', 'ETC/ETH', 'ETC/BTC', 'ETH/BTC', 'LTC/BTC', 'XTZ/BTC', 'XLM/BTC', 'XMR/BTC', 'XRP/BTC', 'ZEC/BTC']
+
+______________________________
+[ccxt.coinbasepro(), ccxt.binance()]
+['LINK/ETH', 'ATOM/BTC', 'KNC/BTC', 'BAT/ETH', 'XRP/BTC', 'XRP/EUR', 'XLM/BTC', 'BCH/BTC', 'LTC/BTC', 'EOS/BTC', 'ETC/BTC', 'REP/BTC', 'XTZ/BTC', 'ETH/EUR', 'ZEC/USDC', 'BTC/EUR', 'BTC/USDC', 'ZEC/BTC', 'DASH/BTC', 'ZRX/BTC', 'BAT/USDC', 'ETH/USDC', 'ETH/BTC']
+
+______________________________
+[ccxt.poloniex(), ccxt.bittrex()]
+['BTS/BTC', 'DASH/BTC', 'DOGE/BTC', 'LTC/BTC', 'NXT/BTC', 'XLM/BTC', 'XEM/BTC', 'XMR/BTC', 'XRP/BTC', 'BTC/USDT', 'DASH/USDT', 'LTC/USDT', 'XLM/USDT', 'XMR/USDT', 'XRP/USDT', 'ETH/BTC', 'ETH/USDT', 'SC/BTC', 'DCR/BTC', 'LSK/BTC', 'STEEM/BTC', 'ETC/BTC', 'ETC/ETH', 'ETC/USDT', 'REP/BTC', 'REP/ETH', 'ARDR/BTC', 'ZEC/BTC', 'ZEC/ETH', 'ZEC/USDT', 'STRAT/BTC', 'GNT/BTC', 'ZRX/BTC', 'ZRX/ETH', 'CVC/BTC', 'OMG/BTC', 'STORJ/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'SNT/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/USDT', 'LOOM/BTC', 'DOGE/USDT', 'SC/USDT', 'ZRX/USDT', 'QTUM/BTC', 'MANA/BTC', 'BNT/BTC', 'BCH/BTC', 'BSV/BTC', 'NMR/BTC', 'GRIN/BTC', 'ATOM/BTC', 'ATOM/USDT', 'BSV/USDT', 'BCH/USDT', 'GRIN/USDT', 'TRX/BTC', 'TRX/USDT', 'BTT/BTC', 'BTT/USDT', 'LINK/BTC', 'XTZ/BTC', 'XTZ/USDT']
+
+______________________________
+[ccxt.bitfinex(), ccxt.okex()]
+['LTC/BTC', 'ETH/BTC', 'ETC/BTC', 'ZEC/BTC', 'XMR/BTC', 'DASH/BTC', 'XRP/BTC', 'IOTA/BTC', 'IOTA/ETH', 'EOS/BTC', 'EOS/ETH', 'OMG/BTC', 'OMG/ETH', 'NEO/BTC', 'NEO/ETH', 'QTUM/BTC', 'EDO/BTC', 'BTG/BTC', 'GNT/BTC', 'SNT/BTC', 'BAT/BTC', 'MANA/BTC', 'ZRX/BTC', 'ZRX/ETH', 'TRX/BTC', 'TRX/ETH', 'IOST/BTC', 'IOST/ETH', 'LRC/BTC', 'XLM/BTC', 'XLM/ETH', 'MKR/BTC', 'MKR/ETH', 'KNC/BTC', 'XTZ/BTC', 'DGB/BTC', 'BSV/BTC', 'BCH/BTC', 'VSYS/BTC', 'BTT/BTC', 'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'EOS/USDT', 'BCH/USDT', 'ATOM/BTC', 'ATOM/ETH', 'LEO/BTC', 'LEO/USDT', 'LEO/ETH', 'OKB/USDT', 'OKB/BTC', 'KAN/USDT', 'ALGO/BTC', 'ALGO/USDT', 'PAX/USDT', 'USDC/USDT', 'TUSD/USDT']
+
+______________________________
+[ccxt.kraken(), ccxt.bitmex()]
+['ETH/USD', 'BTC/USD', 'XRP/USD']
+
+______________________________
+[ccxt.coinbasepro(), ccxt.bitfinex()]
+['ATOM/BTC', 'KNC/BTC', 'BAT/ETH', 'EOS/USD', 'KNC/USD', 'ALGO/USD', 'XRP/BTC', 'REP/USD', 'XLM/EUR', 'XLM/BTC', 'LTC/USD', 'BCH/BTC', 'ETC/USD', 'LTC/BTC', 'XRP/USD', 'BTC/GBP', 'EOS/BTC', 'XLM/USD', 'BTC/USD', 'ZRX/USD', 'EOS/EUR', 'ETC/BTC', 'REP/BTC', 'XTZ/BTC', 'ETH/EUR', 'ETH/USD', 'BTC/EUR', 'ATOM/USD', 'DASH/USD', 'ZEC/BTC', 'XTZ/USD', 'DASH/BTC', 'ZRX/BTC', 'BCH/USD', 'ETH/BTC', 'ETH/GBP']
+
+______________________________
+[ccxt.poloniex(), ccxt.kraken()]
+['DASH/BTC', 'DOGE/BTC', 'LTC/BTC', 'XLM/BTC', 'XMR/BTC', 'XRP/BTC', 'BTC/USDT', 'ETH/BTC', 'ETH/USDT', 'SC/BTC', 'LSK/BTC', 'ETC/BTC', 'ETC/ETH', 'REP/BTC', 'REP/ETH', 'ZEC/BTC', 'OMG/BTC', 'EOS/BTC', 'EOS/ETH', 'BAT/BTC', 'BAT/ETH', 'QTUM/BTC', 'BTC/USDC', 'ETH/USDC', 'BCH/BTC', 'ATOM/BTC', 'TRX/BTC', 'LINK/BTC', 'XTZ/BTC']
+
+______________________________
+[ccxt.bittrex(), ccxt.bitmex()]
+['BTC/USD', 'ETH/USD', 'XRP/USD']
+
+______________________________
+[ccxt.binance(), ccxt.okex()]
+['ETH/BTC', 'LTC/BTC', 'NEO/BTC', 'QTUM/ETH', 'EOS/ETH', 'GAS/BTC', 'BTC/USDT', 'ETH/USDT', 'MCO/ETH', 'MCO/BTC', 'WTC/BTC', 'WTC/ETH', 'LRC/BTC', 'LRC/ETH', 'QTUM/BTC', 'YOYOW/BTC', 'OMG/BTC', 'OMG/ETH', 'ZRX/BTC', 'ZRX/ETH', 'KNC/BTC', 'FUN/BTC', 'NEO/ETH', 'IOTA/BTC', 'IOTA/ETH', 'LINK/BTC', 'LINK/ETH', 'EOS/BTC', 'SNT/BTC', 'ETC/ETH', 'ETC/BTC', 'ZEC/BTC', 'ZEC/ETH', 'BNT/BTC', 'DASH/BTC', 'DASH/ETH', 'BTG/BTC', 'VIB/BTC', 'TRX/BTC', 'TRX/ETH', 'ARK/BTC', 'XRP/BTC', 'XRP/ETH', 'STORJ/ETH', 'NULS/BTC', 'NULS/ETH', 'XMR/BTC', 'XMR/ETH', 'BAT/BTC', 'NEO/USDT', 'LSK/BTC', 'MANA/BTC', 'MANA/ETH', 'BCD/BTC', 'ADA/BTC', 'ADA/ETH', 'CMT/BTC', 'CMT/ETH', 'XLM/BTC', 'XLM/ETH', 'LTC/ETH', 'LTC/USDT', 'WAVES/BTC', 'WAVES/ETH', 'GTO/BTC', 'GTO/ETH', 'ICX/BTC', 'ELF/BTC', 'ELF/ETH', 'EDO/BTC', 'IOST/BTC', 'IOST/ETH', 'CHAT/BTC', 'NANO/BTC', 'NANO/ETH', 'ZIL/BTC', 'ZIL/ETH', 'ONT/BTC', 'ONT/ETH', 'QTUM/USDT', 'XEM/BTC', 'XEM/ETH', 'ADA/USDT', 'GNT/BTC', 'XRP/USDT', 'TUSD/BTC', 'ZEN/BTC', 'ZEN/ETH', 'EOS/USDT', 'CVC/BTC', 'CVC/ETH', 'THETA/BTC', 'TUSD/USDT', 'IOTA/USDT', 'XLM/USDT', 'ONT/USDT', 'TRX/USDT', 'ETC/USDT', 'ICX/USDT', 'SC/BTC', 'SC/ETH', 'NAS/BTC', 'NAS/ETH', 'ARDR/BTC', 'NULS/USDT', 'HC/BTC', 'HC/ETH', 'PAX/BTC', 'PAX/USDT', 'RVN/BTC', 'DCR/BTC', 'MITH/BTC', 'BCH/BTC', 'BSV/BTC', 'BCH/USDT', 'BSV/USDT', 'BTC/USDC', 'ETH/USDC', 'XRP/USDC', 'EOS/USDC', 'USDC/USDT', 'LINK/USDT', 'WAVES/USDT', 'BCH/USDC', 'BSV/USDC', 'LTC/USDC', 'TRX/USDC', 'BTT/BTC', 'BTT/USDT', 'ZIL/USDT', 'ZRX/USDT', 'BAT/USDT', 'XMR/USDT', 'ZEC/USDT', 'IOST/USDT', 'DASH/USDT', 'NANO/USDT', 'OMG/USDT', 'THETA/USDT', 'MITH/USDT', 'ATOM/BTC', 'ATOM/USDT', 'ETC/USDC', 'FTM/USDT', 'ALGO/BTC', 'ALGO/USDT', 'GTO/USDT', 'DOGE/USDT', 'CVC/USDT', 'XTZ/BTC', 'XTZ/USDT', 'RVN/USDT', 'HC/USDT', 'HBAR/BTC', 'HBAR/USDT', 'MCO/USDT', 'CTXC/BTC', 'CTXC/USDT', 'VITE/BTC', 'TCT/BTC', 'TCT/USDT', 'LSK/USDT', 'BNT/USDT']
+
+______________________________
+[ccxt.coinbasepro(), ccxt.kraken()]
+['LINK/ETH', 'ATOM/BTC', 'BAT/ETH', 'EOS/USD', 'BCH/EUR', 'ALGO/USD', 'XRP/BTC', 'REP/USD', 'XLM/EUR', 'XRP/EUR', 'XLM/BTC', 'LTC/USD', 'BCH/BTC', 'ETC/USD', 'LTC/BTC', 'LTC/EUR', 'XRP/USD', 'BTC/GBP', 'EOS/BTC', 'XLM/USD', 'BTC/USD', 'ETH/DAI', 'ETC/EUR', 'EOS/EUR', 'ETC/BTC', 'REP/BTC', 'XTZ/BTC', 'ETH/EUR', 'LINK/USD', 'ETH/USD', 'BTC/EUR', 'BTC/USDC', 'ATOM/USD', 'DASH/USD', 'ZEC/BTC', 'XTZ/USD', 'DASH/BTC', 'BCH/USD', 'ETH/USDC', 'ETH/BTC', 'ETH/GBP']
+
+______________________________
+[ccxt.poloniex(), ccxt.bitfinex()]
+['DASH/BTC', 'LTC/BTC', 'XLM/BTC', 'XMR/BTC', 'XRP/BTC', 'BTC/USDT', 'LTC/USDT', 'ETH/BTC', 'ETH/USDT', 'ETC/BTC', 'REP/BTC', 'REP/ETH', 'ZEC/BTC', 'GNT/BTC', 'ZRX/BTC', 'ZRX/ETH', 'OMG/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'SNT/BTC', 'KNC/BTC', 'BAT/BTC', 'BAT/ETH', 'QTUM/BTC', 'MANA/BTC', 'BCH/BTC', 'BSV/BTC', 'ATOM/BTC', 'BCH/USDT', 'TRX/BTC', 'BTT/BTC', 'XTZ/BTC', 'PAX/USDT']
+
+______________________________
+[ccxt.bittrex(), ccxt.okex()]
+['ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'APM/BTC', 'APM/USDT', 'ARDR/BTC', 'ARK/BTC', 'ATOM/BTC', 'ATOM/ETH', 'ATOM/USDT', 'BAT/BTC', 'BAT/USDT', 'BCH/BTC', 'BCH/USDT', 'BLOC/BTC', 'BNT/BTC', 'BSV/BTC', 'BSV/USDT', 'BTC/USDT', 'BTM/BTC', 'BTT/BTC', 'BTT/USDT', 'CRO/BTC', 'CRO/USDT', 'CTXC/BTC', 'CVC/BTC', 'CVC/ETH', 'CVT/BTC', 'DAI/USDT', 'DASH/BTC', 'DASH/ETH', 'DASH/USDT', 'DCR/BTC', 'DCR/USDT', 'DGB/BTC', 'DGB/USDT', 'DOGE/USDT', 'ELF/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'ETC/BTC', 'ETC/ETH', 'ETC/USDT', 'ETH/BTC', 'ETH/USDT', 'GNT/BTC', 'GTO/BTC', 'HBAR/BTC', 'HBAR/USDT', 'HYC/BTC', 'IOST/BTC', 'IOTA/BTC', 'LBA/BTC', 'LINK/BTC', 'LINK/ETH', 'LINK/USDT', 'LRC/BTC', 'LSK/BTC', 'LTC/BTC', 'LTC/ETH', 'LTC/USDT', 'MANA/BTC', 'MANA/ETH', 'MCO/BTC', 'MCO/ETH', 'MOF/BTC', 'MOF/USDT', 'NEO/BTC', 'NEO/ETH', 'NEO/USDT', 'NXT/BTC', 'OMG/BTC', 'OMG/ETH', 'OMG/USDT', 'ONT/BTC', 'ONT/USDT', 'PAX/BTC', 'PAY/BTC', 'PMA/BTC', 'QTUM/BTC', 'QTUM/ETH', 'RFR/BTC', 'RVN/BTC', 'RVN/USDT', 'SC/BTC', 'SC/ETH', 'SC/USDT', 'SNT/BTC', 'SPND/BTC', 'TRX/BTC', 'TRX/ETH', 'TRX/USDT', 'TUSD/BTC', 'TUSD/USDT', 'VIB/BTC', 'VITE/BTC', 'WAVES/BTC', 'WAVES/ETH', 'XEM/BTC', 'XEM/ETH', 'XLM/BTC', 'XLM/ETH', 'XLM/USDT', 'XMR/BTC', 'XMR/ETH', 'XMR/USDT', 'XRP/BTC', 'XRP/ETH', 'XRP/USDT', 'XTZ/BTC', 'XTZ/USDT', 'ZEC/BTC', 'ZEC/ETH', 'ZEC/USDT', 'ZEN/BTC', 'ZIL/BTC', 'ZRX/BTC', 'ZRX/ETH', 'ZRX/USDT']
+
+______________________________
+[ccxt.binance(), ccxt.bitmex()]
+[]
+
+______________________________
+[ccxt.poloniex(), ccxt.okex()]
+['DASH/BTC', 'LTC/BTC', 'NXT/BTC', 'XLM/BTC', 'XEM/BTC', 'XMR/BTC', 'XRP/BTC', 'BTC/USDT', 'DASH/USDT', 'LTC/USDT', 'XLM/USDT', 'XMR/USDT', 'XRP/USDT', 'ETH/BTC', 'ETH/USDT', 'SC/BTC', 'DCR/BTC', 'LSK/BTC', 'ETC/BTC', 'ETC/ETH', 'ETC/USDT', 'ARDR/BTC', 'ZEC/BTC', 'ZEC/ETH', 'ZEC/USDT', 'GNT/BTC', 'ZRX/BTC', 'ZRX/ETH', 'CVC/BTC', 'OMG/BTC', 'GAS/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USDT', 'SNT/BTC', 'KNC/BTC', 'BAT/BTC', 'BAT/USDT', 'DOGE/USDT', 'GNT/USDT', 'LSK/USDT', 'SC/USDT', 'ZRX/USDT', 'QTUM/BTC', 'QTUM/USDT', 'BTC/USDC', 'ETH/USDC', 'MANA/BTC', 'MANA/USDT', 'BNT/BTC', 'BCH/BTC', 'BCH/USDC', 'BSV/BTC', 'BSV/USDC', 'XRP/USDC', 'LTC/USDC', 'ATOM/BTC', 'ATOM/USDT', 'EOS/USDC', 'ETC/USDC', 'BSV/USDT', 'BCH/USDT', 'TRX/BTC', 'TRX/USDC', 'TRX/USDT', 'BTT/BTC', 'BTT/USDT', 'LINK/BTC', 'XTZ/BTC', 'XTZ/USDT', 'PAX/USDT']
+
+______________________________
+[ccxt.coinbasepro(), ccxt.bitmex()]
+['XRP/USD', 'BTC/USD', 'ETH/USD']
+
+______________________________
+[ccxt.binance(), ccxt.kraken()]
+['ETH/BTC', 'LTC/BTC', 'QTUM/ETH', 'EOS/ETH', 'BTC/USDT', 'ETH/USDT', 'QTUM/BTC', 'OMG/BTC', 'OMG/ETH', 'LINK/BTC', 'LINK/ETH', 'EOS/BTC', 'ETC/ETH', 'ETC/BTC', 'ZEC/BTC', 'DASH/BTC', 'TRX/BTC', 'TRX/ETH', 'XRP/BTC', 'XMR/BTC', 'BAT/BTC', 'BAT/ETH', 'LSK/BTC', 'LSK/ETH', 'ADA/BTC', 'ADA/ETH', 'XLM/BTC', 'WAVES/BTC', 'WAVES/ETH', 'ICX/BTC', 'ICX/ETH', 'NANO/BTC', 'NANO/ETH', 'REP/BTC', 'REP/ETH', 'SC/BTC', 'SC/ETH', 'BCH/BTC', 'BTC/USDC', 'ETH/USDC', 'USDC/USDT', 'ATOM/BTC', 'ALGO/BTC', 'DOGE/BTC', 'XTZ/BTC', 'BTC/EUR', 'ETH/EUR', 'XRP/EUR']
+
+______________________________
+[ccxt.bittrex(), ccxt.bitfinex()]
+['ANT/BTC', 'ANT/ETH', 'ATOM/BTC', 'ATOM/ETH', 'ATOM/USD', 'BAT/BTC', 'BAT/ETH', 'BAT/USD', 'BCH/BTC', 'BCH/USD', 'BCH/USDT', 'BFT/BTC', 'BSV/BTC', 'BSV/USD', 'BTC/EUR', 'BTC/USD', 'BTC/USDT', 'BTT/BTC', 'DAI/BTC', 'DAI/ETH', 'DAI/USD', 'DASH/BTC', 'DASH/USD', 'DGB/BTC', 'DGB/USD', 'DUSK/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USD', 'EOS/USDT', 'ETC/BTC', 'ETC/USD', 'ETH/BTC', 'ETH/EUR', 'ETH/USD', 'ETH/USDT', 'GNT/BTC', 'GNT/ETH', 'IOST/BTC', 'IOTA/BTC', 'LRC/BTC', 'LTC/BTC', 'LTC/USD', 'LTC/USDT', 'MANA/BTC', 'NEO/BTC', 'NEO/ETH', 'OMG/BTC', 'OMG/ETH', 'PAX/USD', 'QTUM/BTC', 'REP/BTC', 'REP/ETH', 'RLC/BTC', 'SNT/BTC', 'SNT/ETH', 'TRX/BTC', 'TRX/ETH', 'TRX/EUR', 'TRX/USD', 'TUSD/USD', 'TUSD/USDT', 'USDT/USD', 'VET/BTC', 'WAXP/BTC', 'WAXP/USD', 'XLM/BTC', 'XLM/ETH', 'XMR/BTC', 'XRP/BTC', 'XRP/USD', 'XTZ/BTC', 'XTZ/USD', 'XVG/BTC', 'ZEC/BTC', 'ZEC/USD', 'ZRX/BTC', 'ZRX/ETH', 'ZRX/USD']
+
+______________________________
+[ccxt.coinbasepro(), ccxt.okex()]
+['LINK/ETH', 'ATOM/BTC', 'KNC/BTC', 'XRP/BTC', 'XLM/BTC', 'BCH/BTC', 'LTC/BTC', 'EOS/BTC', 'ETH/DAI', 'ETC/BTC', 'XTZ/BTC', 'BTC/USDC', 'ZEC/BTC', 'DASH/BTC', 'ZRX/BTC', 'ETH/USDC', 'ETH/BTC']
+
+______________________________
+[ccxt.poloniex(), ccxt.bitmex()]
+[]
+
+______________________________
+[ccxt.bittrex(), ccxt.kraken()]
+['ADA/BTC', 'ADA/ETH', 'ADA/USD', 'ATOM/BTC', 'ATOM/ETH', 'ATOM/USD', 'BAT/BTC', 'BAT/ETH', 'BAT/USD', 'BCH/BTC', 'BCH/EUR', 'BCH/USD', 'BTC/EUR', 'BTC/USD', 'BTC/USDT', 'DAI/USD', 'DAI/USDT', 'DASH/BTC', 'DASH/USD', 'DOGE/BTC', 'EOS/BTC', 'EOS/ETH', 'EOS/USD', 'ETC/BTC', 'ETC/ETH', 'ETC/USD', 'ETH/BTC', 'ETH/EUR', 'ETH/USD', 'ETH/USDT', 'GNO/BTC', 'GNO/ETH', 'LINK/BTC', 'LINK/ETH', 'LINK/USD', 'LSK/BTC', 'LTC/BTC', 'LTC/USD', 'OMG/BTC', 'OMG/ETH', 'QTUM/BTC', 'QTUM/ETH', 'REP/BTC', 'REP/ETH', 'SC/BTC', 'SC/ETH', 'SC/USD', 'TRX/BTC', 'TRX/ETH', 'TRX/EUR', 'TRX/USD', 'USDT/EUR', 'USDT/USD', 'WAVES/BTC', 'WAVES/ETH', 'XLM/BTC', 'XMR/BTC', 'XRP/BTC', 'XRP/USD', 'XTZ/BTC', 'XTZ/ETH', 'XTZ/USD', 'ZEC/BTC', 'ZEC/USD']
+
+______________________________
+[ccxt.binance(), ccxt.bitfinex()]
+['ETH/BTC', 'LTC/BTC', 'NEO/BTC', 'EOS/ETH', 'SNT/ETH', 'BTC/USDT', 'ETH/USDT', 'LRC/BTC', 'QTUM/BTC', 'OMG/BTC', 'OMG/ETH', 'ZRX/BTC', 'ZRX/ETH', 'KNC/BTC', 'FUN/ETH', 'NEO/ETH', 'IOTA/BTC', 'IOTA/ETH', 'XVG/BTC', 'EOS/BTC', 'SNT/BTC', 'ETC/BTC', 'ZEC/BTC', 'DASH/BTC', 'BTG/BTC', 'TRX/BTC', 'TRX/ETH', 'XRP/BTC', 'XMR/BTC', 'BAT/BTC', 'BAT/ETH', 'MANA/BTC', 'XLM/BTC', 'XLM/ETH', 'CND/ETH', 'LTC/USDT', 'TNB/BTC', 'TNB/ETH', 'AION/BTC', 'EDO/BTC', 'EDO/ETH', 'RLC/BTC', 'IOST/BTC', 'IOST/ETH', 'GNT/BTC', 'GNT/ETH', 'REP/BTC', 'REP/ETH', 'EOS/USDT', 'TUSD/USDT', 'DATA/BTC', 'DATA/ETH', 'VET/BTC', 'PAX/USDT', 'BCH/BTC', 'BSV/BTC', 'BCH/USDT', 'USDC/USDT', 'BTT/BTC', 'ATOM/BTC', 'ALGO/BTC', 'ALGO/USDT', 'DUSK/BTC', 'CHZ/USDT', 'XTZ/BTC', 'FTT/USDT', 'BTC/EUR', 'ETH/EUR']
