@@ -242,8 +242,11 @@ def cross_pairs(exch_pairs, pairs_to_cross):
 
 
 def cross(exch_pair, coin_pair):  # TODO: use threading here
-    orderbook1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-    orderbook2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+    try:
+       orderbook1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+       orderbook2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+    except:
+        logger_1.error('Error loading order books from {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
     
     try:
         bid1 = orderbook1['bids'][0][0] if len (orderbook1['bids']) > 0 else None
@@ -270,16 +273,18 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
 
     if bid1 and bid2 and ask1 and ask2:
         if ((bid1 - ask2)/ask2) > (fee1 + fee2):
-            logger_2.info('   OPPORTUNITY: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
+            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
+            # TODO: exploit opportunity
 
         elif ((bid2 - ask1)/ask1) > (fee1 + fee2):  # in the other direcction
-            logger_2.info('   OPPORTUNITY: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
-        
+            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+            # TODO: exploit opportunity
+            
         else:
-            logger_2.info('no opportunity: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
-            logger_2.info('no opportunity: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
+            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
 
-    time.sleep(0.05)
+    time.sleep(0.01)
     return 0
 
 def main():
@@ -292,10 +297,6 @@ def main():
 
     pairs_to_cross = cross_exch_pairs(exch_pairs)
     cross_pairs(exch_pairs, pairs_to_cross)
-
-    
-
-
 
     print("--- %s seconds ---" % (time.time() - start_time))
     print(balances.get_full_balance())
