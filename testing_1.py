@@ -1,17 +1,33 @@
 import ccxt
 from datetime import datetime
 import time
-import logging
 import threading
 import api_keys
 import random
+
+import logging
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """To setup as many loggers as you want"""
+    # logger = logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename=log_file, level=level)
+
+    handler = logging.FileHandler(log_file)        
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 
 # parameters
 DEBUG = True
 DEBUG_LEVEL = 0
-USE_THREADING = True  # accelerates markets loading by 4.64/0.035 = 132x!
-CROSS_MARGIN = 1.05
+USE_THREADING = True  
+CROSS_MARGIN = 1.003  # 0.3% above
 
 def create_exchanges():
     ''' instantiate and load the markets'''
@@ -208,9 +224,6 @@ def pairs_generator(exchanges):
 def cross_exch_pairs(exch_pairs):
     pairs_to_cross = list()
     for exch_pair in exch_pairs:
-        print()
-        print('_' *30)
-        print(exch_pair)
         matched_pairs = list()
         for pair in exch_pair[0].markets.keys():
             if pair in exch_pair[1].markets.keys():  # crossing is possible!
@@ -219,33 +232,54 @@ def cross_exch_pairs(exch_pairs):
     return pairs_to_cross
 
 def cross_pairs(exch_pairs, pairs_to_cross):
-    loop_time = time.time()
-    for index, exch_pair in enumerate(exch_pairs, start=0):
-        if len(pairs_to_cross[index]) > 0:
-            cross(exch_pair, random.choice(pairs_to_cross[index]))
-    print('loop time: ', time.time() - loop_time)
+    while True:
+        loop_time = time.time()
+        for index, exch_pair in enumerate(exch_pairs, start=0):
+            if len(pairs_to_cross[index]) > 0:
+                cross(exch_pair, random.choice(pairs_to_cross[index]))
+        logger_1.info('loop time: {}'.format(time.time() - loop_time))
     return 0
 
 
 def cross(exch_pair, coin_pair):  # TODO: use threading here
-    orderbook1 = exch_pair[0].fetch_order_book (coin_pair, limit=4)
-    orderbook2 = exch_pair[1].fetch_order_book (coin_pair, limit=4)
+    orderbook1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+    orderbook2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
     
-    bid1 = orderbook1['bids'][0][0] if len (orderbook1['bids']) > 0 else None
-    ask1 = orderbook1['asks'][0][0] if len (orderbook1['asks']) > 0 else None
-    bid2 = orderbook1['bids'][0][0] if len (orderbook2['bids']) > 0 else None
-    ask2 = orderbook1['asks'][0][0] if len (orderbook2['asks']) > 0 else None
+    try:
+        bid1 = orderbook1['bids'][0][0] if len (orderbook1['bids']) > 0 else None
+        ask1 = orderbook1['asks'][0][0] if len (orderbook1['asks']) > 0 else None
+        bid2 = orderbook2['bids'][0][0] if len (orderbook2['bids']) > 0 else None
+        ask2 = orderbook2['asks'][0][0] if len (orderbook2['asks']) > 0 else None
+    except:
+        logger_1.error('impossible getting bids/asks')
+        return -1
+    
+    try:
+        fee1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
+    except:
+        fee1 = 0.005
+        logger_1.error('impossible get fee from exchange ', exch_pair[0].name)
+        logger_1.error('setting a default value of {}'.format(fee1))
 
-    fee1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
-    fee2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
+    try:
+        fee2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
+    except:
+        fee2 = 0.005
+        logger_1.error('impossible get fee from exchange {}'.format(exch_pair[1].name))
+        logger_1.error('setting a default value of {}'.format(fee2))
 
     if bid1 and bid2 and ask1 and ask2:
-        if (bid1 - ask2) > (fee1 + fee2) * CROSS_MARGIN:
-            pass
-        elif (bid2 - ask1) > (fee1 + fee2) * CROSS_MARGIN:
-            pass
+        if ((bid1 - ask2)/ask2) > (fee1 + fee2):
+            logger_2.info('   OPPORTUNITY: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
 
-    
+        elif ((bid2 - ask1)/ask1) > (fee1 + fee2):  # in the other direcction
+            logger_2.info('   OPPORTUNITY: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+        
+        else:
+            logger_2.info('no opportunity: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
+            logger_2.info('no opportunity: \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+
+    time.sleep(0.05)
     return 0
 
 def main():
@@ -253,7 +287,6 @@ def main():
     exchanges = create_exchanges()
     load_markets(exchanges)
     symbols_matrix = get_trading_pairs()
-    # print(get_market_pairs(exchanges))
     balances = init_balances(exchanges)
     exch_pairs = pairs_generator(exchanges)
 
@@ -269,7 +302,9 @@ def main():
 
 
 if __name__ ==  "__main__":
-    logging.basicConfig(format='%(asctime)s %(message)s', filename='testing_1.log', filemode='w', level=logging.INFO)
-
+    logger_1 = setup_logger('first_logger', 'logger_1.log', level=logging.DEBUG)
+    logger_1.info('--------------- starting point ---------------')
+    logger_2 = setup_logger('second_logger', 'logger_2.log')
+    logger_2.info('--------------- starting point ---------------')
     main()
     
