@@ -346,7 +346,7 @@ def main():
 if __name__ ==  "__main__":
     logger_1 = setup_logger('first_logger', 'logger_1.log', level=logging.DEBUG)
     logger_1.info('--------------- starting point ---------------')
-    logger_2 = setup_logger('second_logger', 'logger_2.log')
+    logger_2 = setup_logger('second_logger', 'logger_2.csv')
     logger_2.info('--------------- starting point ---------------')
     main()
     
