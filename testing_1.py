@@ -27,7 +27,7 @@ def setup_logger(name, log_file, level=logging.INFO):
 DEBUG = True
 DEBUG_LEVEL = 0  # noy used by now
 USE_THREADING = True  
-CROSSING_MARGIN = 1.003  # 0.3% above
+CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20 
 
 
@@ -252,37 +252,43 @@ def cross_pairs(exch_pairs, pairs_to_cross):
 
 def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
     try:
-       orderbook1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-       orderbook2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+       orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+       orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
     except:
         logger_1.error('Error loading order books from {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
     
     try:
-        bid1 = orderbook1['bids'][0][0] if len (orderbook1['bids']) > 0 else None
-        ask1 = orderbook1['asks'][0][0] if len (orderbook1['asks']) > 0 else None
-        bid2 = orderbook2['bids'][0][0] if len (orderbook2['bids']) > 0 else None
-        ask2 = orderbook2['asks'][0][0] if len (orderbook2['asks']) > 0 else None
+        bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
+        ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
+        vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
+        vol_ask_1 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+
+        bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
+        ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
+        vol_bid_2 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
+        vol_ask_2 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+        
     except:
         logger_1.error('impossible getting bids/asks')
         return exch_locked, -1
     
     try:
-        fee1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
+        fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
     except:
-        fee1 = 0.005
+        fee_1 = 0.005
         logger_1.error('impossible get fee from exchange {}'.format(exch_pair[0].name))
-        logger_1.error('setting a default value of {}'.format(fee1))
+        logger_1.error('setting a default value of {}'.format(fee_1))
 
     try:
-        fee2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
+        fee_2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
     except:
-        fee2 = 0.005
+        fee_2 = 0.005
         logger_1.error('impossible get fee from exchange {}'.format(exch_pair[1].name))
-        logger_1.error('setting a default value of {}'.format(fee2))
+        logger_1.error('setting a default value of {}'.format(fee_2))
 
-    if bid1 and bid2 and ask1 and ask2:
-        if ((bid1 - ask2)/ask2) > (fee1 + fee2):
-            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
+    if bid_1 and bid_2 and ask_1 and ask_2:
+        if ((bid_1 - ask_2)/ask_2) > (fee_1 + fee_2) * CROSSING_MARGIN:
+            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
             logger_1.info('locking exchanges {} and {}'.format(exch_pair[0].name, exch_pair[1].name))
             exch_locked.append(exch_pair[0])
             exch_locked.append(exch_pair[1])
@@ -290,20 +296,19 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
             exploit_pair(exch_pair, coin_pair, exch_locked)
 
-        elif ((bid2 - ask1)/ask1) > (fee1 + fee2):  # in the other direcction
-            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+        elif ((bid_2 - ask_1)/ask_1) > (fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
+            logger_2.info('   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
             logger_1.info('locking exchanges {} and {}'.format(exch_pair[0].name, exch_pair[1].name))
             exch_locked.append([exch_pair[0], exch_pair[1]])
  
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
             exploit_pair(exch_pair, coin_pair, exch_locked)
 
-
         else:
-            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid1, ask2, (bid1 - ask2)/ask2, fee1+fee2))
-            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid2, ask1, (bid2 - ask1)/ask1, fee1+fee2))
+            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
+            logger_2.info('no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
     else:
-        logger_1.error('some bids or aks are NULL, {} {} {} {}'.format(bid1, ask1, bid2, ask2))
+        logger_1.error('some bids or aks are NULL, {} {} {} {} {} {} {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
 
     time.sleep(0.00001)  # fine tune to not pass over exch rate limit!
     return exch_locked, 0
@@ -312,8 +317,14 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
 def exploit_pair(exch_pair, coin_pair, exch_locked):
     # TODO: to implement
     logger_1.info('removing {} and {} from lock stack'.format(exch_pair[0].name, exch_pair[1].name))
-    exch_locked.pop(exch_locked.index(exch_pair[0]))
-    exch_locked.pop(exch_locked.index(exch_pair[1]))
+    try:
+        exch_locked.pop(exch_locked.index(exch_pair[0]))
+    except:
+        pass
+    try:
+        exch_locked.pop(exch_locked.index(exch_pair[1]))
+    except:
+        pass
     return exch_locked, 0
 
 
