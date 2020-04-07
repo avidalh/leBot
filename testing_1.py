@@ -17,6 +17,7 @@ CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
 
 exploit_threads_list = list()
+exch_locked = list()
 
 
 def setup_logger(name, log_file, level=logging.INFO):
@@ -238,38 +239,40 @@ def cross_exch_pairs(exch_pairs):
 
 
 def cross_pairs(exch_pairs, pairs_to_cross):
-    exch_locked = list()
+    global exch_locked
     global exploit_threads_list
     while True:
         loop_time = time.time()
 
         for index, thread in enumerate(exploit_threads_list, start=0):
-            if not thread.is_alive():
-                exch_to_pop = thread.join()
+            if thread.is_alive() == False:
+                thread.join()
                 exploit_threads_list.pop(index)
 
-                logger_1.info('removing {} and {} from lock stack'.format(exch_to_pop[0].name, exch_to_pop[1].name))
-                try:
-                    exch_locked.pop(exch_locked.index(exch_to_pop[0]))
-                except:
-                    pass
-                try:
-                    exch_locked.pop(exch_locked.index(exch_to_pop[1]))
-                except:
-                    pass
-                
+        iterations = 0   
         for index, exch_pair in enumerate(exch_pairs, start=0):
             if exch_pair[0] in exch_locked or exch_pair[1] in exch_locked:
-                logger_1.debug('{} or {} locked!'.format(exch_pair[0].name, exch_pair[1].name))
+                logger_1.info('{} or {} locked!'.format(exch_pair[0].name, exch_pair[1].name))
                 continue
             if len(pairs_to_cross[index]) > 0:
-                exch_locked, status = cross(exch_pair, random.choice(pairs_to_cross[index]), exch_locked)
-        logger_1.info('loop time: {}'.format(time.time() - loop_time))
+                iterations += 1
+                coin_pair = random.choice(pairs_to_cross[index])
+                if [exch_pair[0], exch_pair[1], coin_pair] not in exch_locked:
+                    status = cross(exch_pair, coin_pair)
+                else:
+                    logger_1.info('{} or {} locked!'.format(exch_pair[0].name, exch_pair[1].name))
+    
+        try:
+            time.sleep(iterations * 1.0 - (time.time() - loop_time))
+        except:
+            time.sleep(3)
+        logger_1.info('loop time: {}, treads: {}'.format(time.time() - loop_time, len(exploit_threads_list)))
 
     return 0
 
 
-def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
+def cross(exch_pair, coin_pair):  # TODO: use threading here
+    global exch_locked
     try:
        orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
        orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
@@ -289,56 +292,63 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
         
     except:
         logger_1.error('impossible getting bids/asks')
-        return exch_locked, -1
+        return -1
     
     try:
         fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
     except:
         fee_1 = 0.005
-        # logger_1.error('impossible get fee from exchange {}'.format(exch_pair[0].name))
+        # logger_1.error('impossible to get fee from exchange {}'.format(exch_pair[0].name))
         # logger_1.error('setting a default value of {}'.format(fee_1))
 
     try:
         fee_2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
     except:
         fee_2 = 0.005
-        # logger_1.error('impossible get fee from exchange {}'.format(exch_pair[1].name))
+        # logger_1.error('impossible to get fee from exchange {}'.format(exch_pair[1].name))
         # logger_1.error('setting a default value of {}'.format(fee_2))
 
     if bid_1 and bid_2 and ask_1 and ask_2:
         if ((bid_1 - ask_2)/ask_2) > (fee_1 + fee_2) * CROSSING_MARGIN:
-            logger_2.info(',   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
+            logger_2.info(
+                ',   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
             
-            logger_1.info('locking exchanges {} and {}'.format(exch_pair[0].name, exch_pair[1].name))
-            exch_locked.append(exch_pair[0])
-            exch_locked.append(exch_pair[1])
+            logger_1.info('locking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+            exch_locked.append([exch_pair[0], exch_pair[1], coin_pair])
 
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
-            exploit_pair(exch_pair, coin_pair, exch_locked)
+            exploit_pair(exch_pair, coin_pair)
 
         elif ((bid_2 - ask_1)/ask_1) > (fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
-            logger_2.info(',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+            logger_2.info(
+                ',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
             
             logger_1.info('locking exchanges {} and {}'.format(exch_pair[0].name, exch_pair[1].name))
-            exch_locked.append(exch_pair[0])
-            exch_locked.append(exch_pair[1])
- 
+            exch_locked.append([exch_pair[0], exch_pair[1], coin_pair])
+
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
-            exploit_pair(exch_pair, coin_pair, exch_locked, reverse=True)
+            exploit_pair(exch_pair, coin_pair, reverse=True)
 
         else:
-            logger_2.info(',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
-            logger_2.info(',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+            logger_2.info(
+                ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
+            logger_2.info(
+                ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+    
     else:
         logger_1.error('some bids or aks are NULL, {} {} {} {} {} {} {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
 
-    time.sleep(0.00001)  # fine tune to not pass over exch rate limit! cuidado con los max rates!!!!
+    # time.sleep(0)  # fine tune to not pass over exch rate limit! cuidado con los max rates!!!!
     return exch_locked, 0
 
 
-def exploit_pair(exch_pair, coin_pair, exch_locked, reverse=False):
+def exploit_pair(exch_pair, coin_pair, reverse=False):
     # TODO: to be implemented
-
+    global exch_locked
     global exploit_threads_list
   
     logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair)) 
@@ -346,15 +356,16 @@ def exploit_pair(exch_pair, coin_pair, exch_locked, reverse=False):
     exploit_threads_list.append(thread)
     thread.start()
 
-    return exch_locked, 0
+    return 0
 
 
 def exploit_thread(exch_pair, coin_pair, reverse=False):
-
+    
+    global exch_locked
     filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
 
     while True:
-        loop_timeStampt = time.time()
+        loop_time = time.time()
         now = datetime.now()
         orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
         orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
@@ -381,18 +392,26 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         with open(filename, 'a') as csv_file:
             if not reverse:
                 csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
                 )
             else:
                 csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
                 )
-        if ((bid_1 - ask_2)/ask_2) > 0:
-            break
-        time.sleep(3 - time.time() + loop_timeStampt)
-    
-    return exch_pair
+        if ((bid_1 - ask_2)/ask_2 - (fee_1+fee_2)) <= 0 and not reverse:
+            logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+            exch_locked.pop(exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
+            return 0
 
+        elif ((bid_2 - ask_1)/ask_1 - (fee_1+fee_2)) <= 0 and reverse:
+            logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+            exch_locked.pop(exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
+            return 0
+        
+        time.sleep(30 - (time.time() - loop_time))
+    
 
 def main():
     start_time = time.time()
