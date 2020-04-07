@@ -8,12 +8,15 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
 # parameters
 DEBUG = True
 DEBUG_LEVEL = 0  # noy used by now
 USE_THREADING = True  
 CROSSING_MARGIN = 1.05  # 5% above delta
-TRADING_SIZE = 20  # $20 
+TRADING_SIZE = 20  # $20
+
+exploit_threads_list = list()
 
 
 def setup_logger(name, log_file, level=logging.INFO):
@@ -88,9 +91,9 @@ def load_markets(exchanges, force=False):
     else:
         threads = list()
         for exchange in exchanges:
-            thr = threading.Thread(target=load_markets_thread, args=(exchange, force))
-            threads.append(thr)
-            thr.start()
+            thread = threading.Thread(target=load_markets_thread, args=(exchange, force))
+            threads.append(thread)
+            thread.start()
         for thread, exchange in zip(threads, exchanges):
             exchange = thread.join()
 
@@ -274,15 +277,15 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
         fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
     except:
         fee_1 = 0.005
-        logger_1.error('impossible get fee from exchange {}'.format(exch_pair[0].name))
-        logger_1.error('setting a default value of {}'.format(fee_1))
+        # logger_1.error('impossible get fee from exchange {}'.format(exch_pair[0].name))
+        # logger_1.error('setting a default value of {}'.format(fee_1))
 
     try:
         fee_2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
     except:
         fee_2 = 0.005
-        logger_1.error('impossible get fee from exchange {}'.format(exch_pair[1].name))
-        logger_1.error('setting a default value of {}'.format(fee_2))
+        # logger_1.error('impossible get fee from exchange {}'.format(exch_pair[1].name))
+        # logger_1.error('setting a default value of {}'.format(fee_2))
 
     if bid_1 and bid_2 and ask_1 and ask_2:
         if ((bid_1 - ask_2)/ask_2) > (fee_1 + fee_2) * CROSSING_MARGIN:
@@ -303,7 +306,7 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
             exch_locked.append(exch_pair[1])
  
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
-            exploit_pair(exch_pair, coin_pair, exch_locked)
+            exploit_pair(exch_pair, coin_pair, exch_locked, reverse=True)
 
         else:
             logger_2.info(',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
@@ -315,8 +318,15 @@ def cross(exch_pair, coin_pair, exch_locked):  # TODO: use threading here
     return exch_locked, 0
 
 
-def exploit_pair(exch_pair, coin_pair, exch_locked):
+def exploit_pair(exch_pair, coin_pair, exch_locked, reverse=False):
     # TODO: to be implemented
+
+    logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name), coin_pair)
+    global exploit_threads_list
+    thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
+    exploit_threads_list.append(thread)
+    thread.start()
+
     logger_1.info('removing {} and {} from lock stack'.format(exch_pair[0].name, exch_pair[1].name))
     try:
         exch_locked.pop(exch_locked.index(exch_pair[0]))
@@ -327,6 +337,50 @@ def exploit_pair(exch_pair, coin_pair, exch_locked):
     except:
         pass
     return exch_locked, 0
+
+
+def exploit_thread(exch_pair, coin_pair, reverse=False):
+
+    filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
+
+    while True:
+        loop_timeStampt = time.time()
+        now = datetime.now()
+        orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+        orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+
+        bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
+        ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
+        vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
+        vol_ask_1 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+
+        bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
+        ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
+        vol_bid_2 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
+        vol_ask_2 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+
+        try:
+            fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
+        except:
+            fee_1 = 0.005
+        try:
+            fee_2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
+        except:
+            fee_2 = 0.005
+
+        with open(filename, 'a') as csv_file:
+            if not reverse:
+                csv_file.write(
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                )
+            else:
+                csv_file.write(
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                )
+        if ((bid_1 - ask_2)/ask_2) > 0:
+            break
+        time.sleep(30 - time.time() + loop_timeStampt)
+    return 0
 
 
 def main():
