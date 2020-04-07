@@ -239,6 +239,7 @@ def cross_exch_pairs(exch_pairs):
 
 def cross_pairs(exch_pairs, pairs_to_cross):
     exch_locked = list()
+    global exploit_threads_list
     while True:
         loop_time = time.time()
 
@@ -339,23 +340,8 @@ def exploit_pair(exch_pair, coin_pair, exch_locked, reverse=False):
     # TODO: to be implemented
 
     global exploit_threads_list
-    for index, thread in enumerate(exploit_threads_list, start=0):
-        if not thread.is_alive():
-            exch_to_pop = thread.join()
-            exploit_threads_list.pop(index)
-
-            logger_1.info('removing {} and {} from lock stack'.format(exch_pair[0].name, exch_pair[1].name))
-            try:
-                exch_locked.pop(exch_locked.index(exch_to_pop[0]))
-            except:
-                pass
-            try:
-                exch_locked.pop(exch_locked.index(exch_to_pop[1]))
-            except:
-                pass
-
-    logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name), coin_pair)
-    
+  
+    logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair)) 
     thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
     exploit_threads_list.append(thread)
     thread.start()
@@ -403,7 +389,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                 )
         if ((bid_1 - ask_2)/ask_2) > 0:
             break
-        time.sleep(30 - time.time() + loop_timeStampt)
+        time.sleep(3 - time.time() + loop_timeStampt)
     
     return exch_pair
 
