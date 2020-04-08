@@ -15,7 +15,7 @@ DEBUG_LEVEL = 0  # noy used by now
 USE_THREADING = True  
 CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
-EXCH_REQUEST_DELAY = 1.7  # seconds, take care here: if rate overpassed yo could get penalized!
+EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized!
 EXPLOIT_THREAD_DELAY = 15
 
 # exploit_threads = list()
@@ -88,6 +88,10 @@ def create_exchanges():
         })
 
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, bitmex, okex]
+    timing_limits = [    .35,      .35,       1,     .35,      1.5,      1,      1,  .35]  # requesting time limits per exchange
+
+    for exchange, timing in zip(exchanges, timing_limits):
+        g_storage.timer[exchange.name] = [0, timing]
 
     return exchanges
 
@@ -285,23 +289,20 @@ def cross_pairs(exch_pairs, pairs_to_cross):
 
 def cross(exch_pair, coin_pair):  # TODO: use threading here
     # global exch_locked
-    try:
-        if (EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[0].name])) > 0:
-            time.sleep(EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[0].name]))
-    except:
-        pass
+    if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
+        time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
+
+    if (g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1])) > 0:
+        time.sleep(g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1]))
 
     try:
-        if (EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[1].name])) > 0:
-            time.sleep(EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[1].name]))
+        orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+        g_storage.timer[exch_pair[0].name][0] = time.time()
+        orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+        g_storage.timer[exch_pair[1].name][0] = time.time()
     except:
-        pass
-
-    orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-    g_storage.timer[exch_pair[0].name] = time.time()
-    orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-    g_storage.timer[exch_pair[1].name] = time.time()
-
+        logger_1.error('Error loading order books, request error on {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
+        return -1
     # except:
     #     logger_1.error('Error loading order books from {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
     
@@ -394,16 +395,16 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         loop_time = time.time()
         now = datetime.now()
 
-        if (EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[0].name])) > 0:
-            time.sleep(EXCH_REQUEST_DELAY -(time.time() - g_storage.timer[exch_pair[0].name]))
+        if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
+            time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
 
-        if (EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[1].name])) > 0:
-            time.sleep(EXCH_REQUEST_DELAY - (time.time() - g_storage.timer[exch_pair[1].name]))
+        if (g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1])) > 0:
+            time.sleep(g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1]))
 
         orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[0].name] = time.time()
+        g_storage.timer[exch_pair[0].name][0] = time.time()
         orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[1].name] = time.time()
+        g_storage.timer[exch_pair[1].name][0] = time.time()
 
         bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
         ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
