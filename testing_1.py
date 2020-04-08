@@ -88,7 +88,7 @@ def create_exchanges():
         })
 
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, bitmex, okex]
-    timing_limits = [    .35,      .35,       1,     .35,      1.5,      1,      1,  .35]  # requesting time limits per exchange
+    timing_limits = [    .35,      .35,       1,     .35,        2,      1,      1,  .35]  # requesting time limits per exchange
 
     for exchange, timing in zip(exchanges, timing_limits):
         g_storage.timer[exchange.name] = [0, timing]
@@ -298,13 +298,15 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
     try:
         orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
         g_storage.timer[exch_pair[0].name][0] = time.time()
+    except:
+        logger_1.critical('Error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[0].name))
+        return -1
+    try:
         orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
         g_storage.timer[exch_pair[1].name][0] = time.time()
     except:
-        logger_1.error('Error loading order books, request error on {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
+        logger_1.critical('Error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[1].name))
         return -1
-    # except:
-    #     logger_1.error('Error loading order books from {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
     
     try:
         bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
@@ -314,8 +316,8 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
 
         bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
         ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
-        vol_bid_2 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
-        vol_ask_2 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+        vol_bid_2 = orderbook_2['bids'][0][1] if len (orderbook_2['bids']) > 0 else None
+        vol_ask_2 = orderbook_2['asks'][0][1] if len (orderbook_2['asks']) > 0 else None
         
     except:
         logger_1.error('not possible getting bids/asksfrom {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
@@ -358,13 +360,13 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
             # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
             exploit_pair(exch_pair, coin_pair, reverse=True)
 
-        else:
-            logger_2.info(
-                ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
-                    exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
-            logger_2.info(
-                ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
-                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+        # else:
+        #     logger_2.info(
+        #         ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+        #             exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
+        #     logger_2.info(
+        #         ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+        #             exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
     
     else:
         logger_1.error('some bids or aks are NULL, {} {} {} {} {} {} {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
@@ -401,21 +403,37 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         if (g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1])) > 0:
             time.sleep(g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1]))
 
-        orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[0].name][0] = time.time()
-        orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[1].name][0] = time.time()
+        try:
+            orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+            g_storage.timer[exch_pair[0].name][0] = time.time()
+        except:
+            logger_1.critical('Thread error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[0].name))
+            continue
+        try:
+            orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+            g_storage.timer[exch_pair[1].name][0] = time.time()
+        except:
+            logger_1.critical('Thread error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[1].name))
+            continue
+        
+        # orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
+        # g_storage.timer[exch_pair[0].name][0] = time.time()
+        # orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+        # g_storage.timer[exch_pair[1].name][0] = time.time()
 
-        bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
-        ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
-        vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
-        vol_ask_1 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+        try:
+            bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
+            ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
+            vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
+            vol_ask_1 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
 
-        bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
-        ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
-        vol_bid_2 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
-        vol_ask_2 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
-
+            bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
+            ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
+            vol_bid_2 = orderbook_2['bids'][0][1] if len (orderbook_2['bids']) > 0 else None
+            vol_ask_2 = orderbook_2['asks'][0][1] if len (orderbook_2['asks']) > 0 else None
+        except:
+                logger_1.error('Thread error: not possible getting bids/asksfrom {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
+    
         try:
             fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
         except:
