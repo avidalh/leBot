@@ -274,10 +274,11 @@ def cross_pairs(exch_pairs, pairs_to_cross):
                 iterations += 1
                 coin_pair = random.choice(pairs_to_cross[index])
                 if [exch_pair[0], exch_pair[1], coin_pair] not in g_storage.exch_locked:
+
                     status = cross(exch_pair, coin_pair)
+                
                 else:
                     logger_1.info('{} and {} locked for {}!'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-    
         # try:
         #     time.sleep(iterations * 1.0 - (time.time() - loop_time))
         # except:
@@ -288,7 +289,7 @@ def cross_pairs(exch_pairs, pairs_to_cross):
 
 
 def cross(exch_pair, coin_pair):  # TODO: use threading here
-    # global exch_locked
+    # wait the required time, depending on the exchange
     if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
         time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
 
@@ -297,15 +298,19 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
 
     try:
         orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[0].name][0] = time.time()
+        g_storage.timer[exch_pair[0].name][0] = time.time()  # timestampting request
     except:
-        logger_1.critical('Error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[0].name))
+        logger_1.critical('problems loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[0].name))
+        g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
+        logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
         return -1
     try:
         orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[1].name][0] = time.time()
+        g_storage.timer[exch_pair[1].name][0] = time.time()  # timestampting request
     except:
-        logger_1.critical('Error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[1].name))
+        logger_1.critical('problems loading order books, request error on {}, adjusting its timing limits'.format(exch_pair[1].name))
+        g_storage.timer[exch_pair[1].name][1] += 0.05  # increasing delay. CAUTION HERE!
+        logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
         return -1
     
     try:
