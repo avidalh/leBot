@@ -27,6 +27,7 @@ class GlobalStorage:
         self.exploit_threads = list()
         self.exch_locked = list()
         self.timer = {}
+        self.coins_white_list = list()
 
 
 g_storage = GlobalStorage()
@@ -233,7 +234,7 @@ def get_order_books(exchanges, symbols_matrix):
     
 
 def pairs_generator(exchanges):
-    ''' optimize the empairment to spread the empairments uniformly avoiding overpass request limits
+    ''' optimize the empairment to spread the empairments uniformly, avoiding overpass requesting rate limits
     '''
     pairs = list()
     for i, j in zip([0,2,4,6, 0,1,4,5, 0,1,4,5, 0,1,2,3, 0,1,2,3, 1,0,3,2, 0,1,2,3],
@@ -481,7 +482,7 @@ def main():
     start_time = time.time()
     exchanges = create_exchanges()
     load_markets(exchanges)
-    symbols_matrix = get_trading_pairs()
+    # symbols_matrix = get_trading_pairs()
     balances = init_balances(exchanges)
     exch_pairs = pairs_generator(exchanges)
 
