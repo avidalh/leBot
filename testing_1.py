@@ -301,7 +301,8 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
         g_storage.timer[exch_pair[0].name][0] = time.time()  # timestampting request
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting timing limits'.format(exch_pair[0].name))
-        g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
+        if g_storage.timer[exch_pair[0].name][1] <= 3.0:
+            g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
         logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
         return -1
     try:
@@ -309,7 +310,8 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
         g_storage.timer[exch_pair[1].name][0] = time.time()  # timestampting request
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting its timing limits'.format(exch_pair[1].name))
-        g_storage.timer[exch_pair[1].name][1] += 0.05  # increasing delay. CAUTION HERE!
+        if g_storage.timer[exch_pair[1].name][1] <= 3.0:
+            g_storage.timer[exch_pair[1].name][1] += 0.05  # increasing delay. CAUTION HERE!
         logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
         return -1
     
