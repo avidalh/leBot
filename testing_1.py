@@ -463,11 +463,19 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                         now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
                 )
         if ((bid_1 - ask_2)/ask_2 - (fee_1 + fee_2)) <= 0 and not reverse:
+            csv_file.write(
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
+                )
             logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
             return 0
 
         elif ((bid_2 - ask_1)/ask_1 - (fee_1 + fee_2)) <= 0 and reverse:
+            csv_file.write(
+                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                )
             logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
             return 0
