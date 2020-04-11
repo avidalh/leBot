@@ -18,6 +18,7 @@ CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
 # EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized! TODO: to remove
 EXPLOIT_THREAD_DELAY = 15  # exploit thread period
+MAX_THREADS = 50  # limiting the number of threads
 
 
 class GlobalStorage:
@@ -32,6 +33,8 @@ class GlobalStorage:
 
 
 g_storage = GlobalStorage()
+# g_storage.coins_white_list = 'BCH BNB BSV BTC DASH EOS ETC ETH HT LINK LTC NEO OF OKB PAX QC QTUM TRX USDC USDT XML XRP ZEC XMR ADA ATOM'.split()
+g_storage.coins_white_list = 'BCH BTC ETH LTC EOS XMR XRP ZEC USDC USDT'.split()
 
 
 def setup_logger(name, log_file, level=logging.INFO):
@@ -285,13 +288,22 @@ def cross_exch_pairs(exch_pairs):
         return a list of the possible coins pairs to cross in each exchange pair
     """
     pairs_to_cross = list()
+    final_pairs = list()
     for exch_pair in exch_pairs:
         matched_pairs = list()
         for pair in exch_pair[0].markets.keys():
             if pair in exch_pair[1].markets.keys():  # crossing is possible!
-                matched_pairs.append(pair)
+                if pair.split('/')[0] in g_storage.coins_white_list and pair.split('/')[1] in g_storage.coins_white_list:
+                    matched_pairs.append(pair)
         pairs_to_cross.append(matched_pairs)
+    
     return pairs_to_cross
+
+    # for symbol in g_storage.coins_white_list:
+    #     for pair in matched_pairs:
+    #         if symbol in pair and pair not in final_pairs:
+    #             final_pairs.append(pair)
+    # return final_pairs
 
 
 def cross_pairs(exch_pairs, pairs_to_cross):
@@ -352,7 +364,7 @@ def cross(exch_pair, coin_pair):
         g_storage.timer[exch_pair[0].name][0] = time.time()  # timestampts the request/fetch
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting timing limits'.format(exch_pair[0].name))
-        if g_storage.timer[exch_pair[0].name][1] <= 3.0:
+        if g_storage.timer[exch_pair[0].name][1] <= 4.95:
             g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
             logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
         return -1
@@ -362,7 +374,7 @@ def cross(exch_pair, coin_pair):
         g_storage.timer[exch_pair[1].name][0] = time.time()  # timestampting request
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting its timing limits'.format(exch_pair[1].name))
-        if g_storage.timer[exch_pair[1].name][1] <= 3.0:
+        if g_storage.timer[exch_pair[1].name][1] <= 4.95:
             g_storage.timer[exch_pair[1].name][1] += 0.05  # increasing delay. CAUTION HERE!
             logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
         return -1
@@ -479,7 +491,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         except:
             logger_1.critical('Thread error loading order books, request error on {}, awaiting for a while'.format(exch_pair[0].name))
             # g_storage.timer[exch_pair[0].name][0] = time.time()
-            time.sleep(5)  # wait a moment...
+            time.sleep(random.randint(5, 14))  # wait a moment...
             continue
         try:
             orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
@@ -487,7 +499,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         except:
             logger_1.critical('Thread error loading order books, request error on {}, awaiting for a while'.format(exch_pair[1].name))
             # g_storage.timer[exch_pair[1].name][0] = time.time()
-            time.sleep(5)  # wait a moment...
+            time.sleep(random.randint(5, 14))  # wait a moment...
             continue
         
         try:
