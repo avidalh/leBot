@@ -34,6 +34,7 @@ class GlobalStorage:
 
 g_storage = GlobalStorage()
 # g_storage.coins_white_list = 'BCH BNB BSV BTC DASH EOS ETC ETH HT LINK LTC NEO OF OKB PAX QC QTUM TRX USDC USDT XML XRP ZEC XMR ADA ATOM'.split()
+# taking only some coins...
 g_storage.coins_white_list = 'BCH BTC ETH LTC EOS XMR XRP ZEC USDC USDT'.split()
 
 
@@ -193,12 +194,12 @@ class Balance:
     def __init__(self):
         self.exchanges = {}
     
-    def set_balance(self, exchange: str, coin: str, balance: float, change: float):
+    def set_balance(self, exchange: str, coin: str, balance: float, change: float, trading_size: float):
         if exchange not in self.exchanges:
-            self.exchanges.update({exchange: {coin: {'amount': balance, 'change': change}}})
+            self.exchanges.update({exchange: {coin: {'amount': balance, 'change': change, 'trading_size': trading_size}}})
         else:
             if coin not in self.exchanges[exchange]:
-                self.exchanges[exchange].update({coin: {'amount': balance, 'change': change}})
+                self.exchanges[exchange].update({coin: {'amount': balance, 'change': change, 'trading_size': trading_size}})
             else:
                 print('Error: exchange already has that coin in its balance')
                 return -1
@@ -217,13 +218,13 @@ class Balance:
         return -1
 
 
-    def update_balance(self, exchange: str, coin: str, new_balance: float, change: float):
+    def update_balance(self, exchange: str, coin: str, new_balance: float, change: float, trading_size: float):
         if exchange in self.exchanges:
             if coin in self.exchanges[exchange]:
                 new_balance = self.exchanges[exchange][coin]['amount'] + new_balance
-                self.exchanges[exchange][coin].update({'amount': new_balance, 'change': change})
+                self.exchanges[exchange][coin].update({'amount': new_balance, 'change': change, 'trading_size': trading_size})
             else:
-                self.exchanges[exchange].update({coin: {'amount': new_balance, 'change': change}})
+                self.exchanges[exchange].update({coin: {'amount': new_balance, 'change': change, 'trading_size': trading_size}})
         else:
             print('Error: exchange not in this balance')
             return -1
@@ -248,20 +249,31 @@ class Balance:
             return -1
 
 
+    def get_coin_balance(self, exchange: str, coin: str):
+        if exchange in self.exchanges:
+            return self.exchanges[exchange][coin]
+
+balances = Balance()
+
 def init_balances(exchanges):
     """
         initializes an instance of Balance class
         used in demo mode
     """
-    bal = Balance()
+    
     for exchange in exchanges:
-        bal.set_balance(exchange.name, 'USDT', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'BTC', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'ETH', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'XMR', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'ADA', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'XRP', 1000.0, 1.0)
-    return bal
+        balances.set_balance(exchange.name, 'USDT', 100.0, 1.0, 20.)
+        balances.set_balance(exchange.name, 'BTC', .02, 7000.0, 0.001)
+        balances.set_balance(exchange.name, 'ETH', 1.0, 156.0, 0.3)
+        balances.set_balance(exchange.name, 'XMR', 2.0, 52.97, .5)
+        balances.set_balance(exchange.name, 'BCH', .5, 232.0, .4)
+        balances.set_balance(exchange.name, 'XRP', 500, .188, 10.)
+        balances.set_balance(exchange.name, 'ZEC', 3.0, 35.81, .6)
+        balances.set_balance(exchange.name, 'EOS', 50.0, 2.48, 10.)
+        balances.set_balance(exchange.name, 'LTC', 4.0, 42.0, .5)
+        balances.set_balance(exchange.name, 'USDC', 100.0, 1.0, 20)
+
+    return 0
 
 
 def get_order_books(exchanges, symbols_matrix): return 0  # TODO: to be removed
@@ -532,6 +544,11 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                     '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
                         now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
                 )
+
+                selling_order_demo(exch_pair[0].name, coin_pair, bid_1, vol_bid_1, fee_1)
+                # buying_order_demo(exch_pair[1].name, coin_pair)
+
+
             else:
                 csv_file.write(
                     '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
@@ -554,14 +571,29 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             time.sleep(EXPLOIT_THREAD_DELAY - (time.time() - loop_time))
         except:
             pass
-    
+
+
+def selling_order_demo(exchange, coin_pair, bid, vol, fee):
+    """ simulate a selling order """
+    base_coin = coin_pair.split('/')[0]
+    quote_coin = coin_pair.split('/')[1]
+    trading_size = balances.get_coin_balance(exchange, base_coin)['trading_size']
+    base_balance = balances.get_coin_balance(exchange, base_coin)['amount']
+    quote_balance = balances.get_coin_balance(exchange, quote_coin)['amount']
+
+    if base_balance <= vol:
+        quote_balance += trading_size * bid
+        base_balance -= (trading_size / bid + fee)
+
+    return 0
+
 
 def main():
     start_time = time.time()
     exchanges = create_exchanges()
     load_markets(exchanges)
     # symbols_matrix = get_trading_pairs()
-    balances = init_balances(exchanges)
+    init_balances(exchanges)
     exch_pairs = pairs_generator(exchanges)
 
     pairs_to_cross = cross_exch_pairs(exch_pairs)
