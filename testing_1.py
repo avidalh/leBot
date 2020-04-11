@@ -325,7 +325,7 @@ def cross_pairs(exch_pairs, pairs_to_cross):
                 else:
                     logger_1.info('{} and {} already locked for {}!'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
         
-        logger_1.info('loop time: {}, treads: {}'.format(time.time() - loop_time, len(g_storage.exploit_threads)))
+        logger_1.info('loop time: {}, threads: {}'.format(time.time() - loop_time, len(g_storage.exploit_threads)))
 
     return 0
 
@@ -354,7 +354,7 @@ def cross(exch_pair, coin_pair):
         logger_1.critical('problems loading order books, request error on {}, adjusting timing limits'.format(exch_pair[0].name))
         if g_storage.timer[exch_pair[0].name][1] <= 3.0:
             g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
-        logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
+            logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
         return -1
 
     try:  # and fetch the second order book
@@ -364,7 +364,7 @@ def cross(exch_pair, coin_pair):
         logger_1.critical('problems loading order books, request error on {}, adjusting its timing limits'.format(exch_pair[1].name))
         if g_storage.timer[exch_pair[1].name][1] <= 3.0:
             g_storage.timer[exch_pair[1].name][1] += 0.05  # increasing delay. CAUTION HERE!
-        logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
+            logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
         return -1
     
     try:  # gets the bids and asks for each exchange
@@ -415,7 +415,7 @@ def cross(exch_pair, coin_pair):
                 ',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
                     exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
             
-            logger_1.info('locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, , coin_pair))
+            logger_1.info('locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
             g_storage.exch_locked.append([exch_pair[1], exch_pair[0], coin_pair])
 
             # if profit is possible in the other direction exploit the pair as well
@@ -477,13 +477,17 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
             g_storage.timer[exch_pair[0].name][0] = time.time()
         except:
-            logger_1.critical('Thread error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[0].name))
+            logger_1.critical('Thread error loading order books, request error on {}, awaiting for a while'.format(exch_pair[0].name))
+            # g_storage.timer[exch_pair[0].name][0] = time.time()
+            time.sleep(5)  # wait a moment...
             continue
         try:
             orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
             g_storage.timer[exch_pair[1].name][0] = time.time()
         except:
-            logger_1.critical('Thread error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[1].name))
+            logger_1.critical('Thread error loading order books, request error on {}, awaiting for a while'.format(exch_pair[1].name))
+            # g_storage.timer[exch_pair[1].name][0] = time.time()
+            time.sleep(5)  # wait a moment...
             continue
         
         try:
