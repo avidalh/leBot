@@ -10,33 +10,36 @@ from logging.handlers import RotatingFileHandler
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 # parameters
+DEMO_MODE = False  # TODO: implement a demo mode using balances
 DEBUG = True
 DEBUG_LEVEL = 0  # noy used by now
-USE_THREADING = True  
+USE_THREADING = True  # only used in load markers function, TODO: to remove
 CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
-EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized!
-EXPLOIT_THREAD_DELAY = 15
-
-# exploit_threads = list()
-# exch_locked = list()
+# EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized! TODO: to remove
+EXPLOIT_THREAD_DELAY = 15  # exploit thread period
 
 
 class GlobalStorage:
+    """
+        general purpose class to store global data
+    """
     def __init__(self):
-        self.exploit_threads = list()
-        self.exch_locked = list()
-        self.timer = {}
-        self.coins_white_list = list()
+        self.exploit_threads = list()  # list of threads
+        self.exch_locked = list()  # list of exchanges/coins already in use (threaded)
+        self.timer = {}  # time stampt and exchange delay
+        self.coins_white_list = list()  # coins allowed to use/cross
 
 
 g_storage = GlobalStorage()
 
 
 def setup_logger(name, log_file, level=logging.INFO):
-    """To setup as many loggers as you want"""
+    """
+        To setup as many loggers as you want
+    """
     handler = logging.FileHandler(log_file)        
-    handler = RotatingFileHandler(log_file, maxBytes=50*1024*1024, backupCount=10)
+    handler = RotatingFileHandler(log_file, maxBytes=50*1024*1024, backupCount=10)  # rotate into 10 files when file reaches 50MB
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
@@ -47,7 +50,11 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 def create_exchanges():
-    ''' instantiate and load the markets'''
+    """
+        instantiate the markets
+        to include more exchanges use this function.
+        new exchanges need to be hand-coded here
+    """
     coinbasepro = ccxt.coinbasepro({
         'apiKey': api_keys.coinbasepro['apiKey'],
         'secret': api_keys.coinbasepro['secret'],
@@ -89,7 +96,7 @@ def create_exchanges():
         })
 
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kraken, bitmex, okex]
-    timing_limits = [    .35,      .35,       1,     .35,        2,      1,      1,  .35]  # requesting time limits per exchange
+    timing_limits = [    .35,      .35,       1,     .35,        2,      1,      1,  .35]  # requesting period limit per exchange
 
     for exchange, timing in zip(exchanges, timing_limits):
         g_storage.timer[exchange.name] = [0, timing]
@@ -97,12 +104,12 @@ def create_exchanges():
     return exchanges
 
 
-def load_markets_thread(exchange, force):
-    exchange.load_markets(force)
-
-
 def load_markets(exchanges, force=False):
-    ''' load markets'''
+    """ 
+        load markets in the passed list
+        TODO: remove USE_THREADING option since it's not necessary/used
+        TODO: modify these two functions to reload markets every couple of hours...
+    """
     if not USE_THREADING:
         for exchange in exchanges:
             exchange.load_markets(force)
@@ -116,7 +123,20 @@ def load_markets(exchanges, force=False):
             exchange = thread.join()
 
 
-def get_trading_pairs():  # TODO: Check the pairs per exchange
+def load_markets_thread(exchange, force):
+    """
+        thread to load the markets on the passed exchange
+        :force: is a boolean which forces the reloading (overriding cached data)
+    """
+    exchange.load_markets(force)
+
+
+def get_trading_pairs():  # TODO: to be removed
+    """
+        NOT USED
+        returns the trading coins to be used in the trading
+        TODO: to be removed
+    """
     symbols_matrix = {      #1          #2        #3          #4         #5         #6         #7         #7         #8         #9          #10          #11         #12         #13
         'coinbasepro': ['BTC/USDC', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
         'poloniex':    ['BTC/USDC', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
@@ -153,6 +173,9 @@ def get_trading_pairs():  # TODO: Check the pairs per exchange
 
 
 def get_market_pairs(exchanges):
+    """
+        once the markets are loaded gets the coin pairs used on them    
+    """
     pairs = list()
     for exchange in exchanges:
         pairs.append(exchange.markets.keys())
@@ -160,7 +183,10 @@ def get_market_pairs(exchanges):
 
 
 class Balance:
-    ''' balance class '''    
+    """
+        class to store the current balance
+        TODO: implement a demo mode to use fake balances 
+    """
     def __init__(self):
         self.exchanges = {}
     
@@ -220,22 +246,32 @@ class Balance:
 
 
 def init_balances(exchanges):
+    """
+        initializes an instance of Balance class
+        used in demo mode
+    """
     bal = Balance()
     for exchange in exchanges:
         bal.set_balance(exchange.name, 'USDT', 1000.0, 1.0)
-        bal.set_balance(exchange.name, 'BTC', 1.0, 7000.0)
+        bal.set_balance(exchange.name, 'BTC', 1000.0, 1.0)
+        bal.set_balance(exchange.name, 'ETH', 1000.0, 1.0)
+        bal.set_balance(exchange.name, 'XMR', 1000.0, 1.0)
+        bal.set_balance(exchange.name, 'ADA', 1000.0, 1.0)
+        bal.set_balance(exchange.name, 'XRP', 1000.0, 1.0)
     return bal
 
 
-def get_order_books(exchanges, symbols_matrix):
-
-    
-    return 0
+def get_order_books(exchanges, symbols_matrix): return 0  # TODO: to be removed
     
 
 def pairs_generator(exchanges):
-    ''' optimize the empairment to spread the empairments uniformly, avoiding overpass requesting rate limits
-    '''
+    """
+        return a list of exchanges pairs and optimize the sequence for the requesting process
+        optimize the empairment to spread the empairments uniformly, avoiding overpass requesting rate limits
+        pairing was figured out by hand...
+        TODO: look for a math function to perform the distribution
+        TODO: currently uses 8 exchanges, to insert more a new empairement lists must be created! :-/
+    """
     pairs = list()
     for i, j in zip([0,2,4,6, 0,1,4,5, 0,1,4,5, 0,1,2,3, 0,1,2,3, 1,0,3,2, 0,1,2,3],
                     [1,3,5,7, 2,3,6,7, 3,2,7,6, 4,5,6,7, 5,4,7,6, 7,6,5,4, 7,6,5,4]):
@@ -245,6 +281,9 @@ def pairs_generator(exchanges):
 
 
 def cross_exch_pairs(exch_pairs):
+    """
+        return a list of the possible coins pairs to cross in each exchange pair
+    """
     pairs_to_cross = list()
     for exch_pair in exch_pairs:
         matched_pairs = list()
@@ -256,58 +295,70 @@ def cross_exch_pairs(exch_pairs):
 
 
 def cross_pairs(exch_pairs, pairs_to_cross):
-    # global exch_locked
-    # global exploit_threads
-    while True:
+    """
+        performs the crossing between exchanges using the possible coins pairs
+        a random choosing is used.
+        TODO: remove the random choosing and use a more consistent way...
+    """
+    while True:  # infinite loop
         loop_time = time.time()
 
+        # first remove finished threads from the threads list:
         for index, thread in enumerate(g_storage.exploit_threads, start=0):
             if thread.is_alive() == False:
                 thread.join()
                 g_storage.exploit_threads.pop(index)
+                logger_1.info('removing finished thread from the list')
 
-        iterations = 0   
+        # randomly chooses a pair of coins and call the crossing function
+        # iterations = 0  # not used  TODO: to be removed
         for index, exch_pair in enumerate(exch_pairs, start=0):
-            # if exch_pair[0] in exch_locked or exch_pair[1] in exch_locked:
-            #     logger_1.info('{} or {} locked!'.format(exch_pair[0].name, exch_pair[1].name))
-            #     continue
             if len(pairs_to_cross[index]) > 0:
-                iterations += 1
+                # iterations += 1  # not used  TODO: to be removed
                 coin_pair = random.choice(pairs_to_cross[index])
+                # check if this pair of echanges and coins are already locked 
                 if [exch_pair[0], exch_pair[1], coin_pair] not in g_storage.exch_locked:
 
-                    status = cross(exch_pair, coin_pair)
+                    status = cross(exch_pair, coin_pair)  # launch the crossing procesure
+                    logger_1.info('trying {} and {} for {} crossing'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
                 
                 else:
-                    logger_1.info('{} and {} locked for {}!'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-        # try:
-        #     time.sleep(iterations * 1.0 - (time.time() - loop_time))
-        # except:
-        #     time.sleep(3)
+                    logger_1.info('{} and {} already locked for {}!'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+        
         logger_1.info('loop time: {}, treads: {}'.format(time.time() - loop_time, len(g_storage.exploit_threads)))
 
     return 0
 
 
-def cross(exch_pair, coin_pair):  # TODO: use threading here
+def cross(exch_pair, coin_pair):
+    """
+        performs the exchange crossing for the coin pair
+        TODO: if an exchange does not respond many times consecutively move it to a waiting list and disable it for requesting
+              try again after some minutes. Use a thread for that functionality
+        TODO: use more points and not only the best one. 
+    """
+    
+    # this is to not over pass the exchanges request limits
     # wait the required time, depending on the exchange
     if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
         time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
 
+    # if necessary also waits for the second exchange
     if (g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1])) > 0:
         time.sleep(g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1]))
 
-    try:
-        orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-        g_storage.timer[exch_pair[0].name][0] = time.time()  # timestampting request
+    try:  # fetch the first order book
+        orderbook_1 = exch_pair[0].fetch_order_book(coin_pair, limit=5)
+        g_storage.timer[exch_pair[0].name][0] = time.time()  # timestampts the request/fetch
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting timing limits'.format(exch_pair[0].name))
         if g_storage.timer[exch_pair[0].name][1] <= 3.0:
             g_storage.timer[exch_pair[0].name][1] += 0.05  # increasing delay. CAUTION HERE!
         logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[0].name][1]))
         return -1
-    try:
-        orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
+
+    try:  # and fetch the second order book
+        orderbook_2 = exch_pair[1].fetch_order_book(coin_pair, limit=5)
         g_storage.timer[exch_pair[1].name][0] = time.time()  # timestampting request
     except:
         logger_1.critical('problems loading order books, request error on {}, adjusting its timing limits'.format(exch_pair[1].name))
@@ -316,7 +367,7 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
         logger_1.critical('new timming limit: {} seconds'.format(g_storage.timer[exch_pair[1].name][1]))
         return -1
     
-    try:
+    try:  # gets the bids and asks for each exchange
         bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
         ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
         vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
@@ -331,6 +382,7 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
         logger_1.error('not possible getting bids/asksfrom {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
         return -1
     
+    # gets the fees
     try:
         fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
     except:
@@ -345,6 +397,7 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
         # logger_1.error('impossible to get fee from exchange {}'.format(exch_pair[1].name))
         # logger_1.error('setting a default value of {}'.format(fee_2))
 
+    # check if there is an ipportunity of profit in both directions
     if bid_1 and bid_2 and ask_1 and ask_2:
         if ((bid_1 - ask_2)/ask_2) > (fee_1 + fee_2) * CROSSING_MARGIN:
             logger_2.info(
@@ -354,7 +407,7 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
             logger_1.info('locking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             g_storage.exch_locked.append([exch_pair[0], exch_pair[1], coin_pair])
 
-            # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
+            # if profit is possible exploit the pair
             exploit_pair(exch_pair, coin_pair)
 
         elif ((bid_2 - ask_1)/ask_1) > (fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
@@ -362,13 +415,13 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
                 ',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
                     exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
             
-            logger_1.info('locking exchanges {} and {}'.format(exch_pair[0].name, exch_pair[1].name))
-            g_storage.exch_locked.append([exch_pair[0], exch_pair[1], coin_pair])
+            logger_1.info('locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, , coin_pair))
+            g_storage.exch_locked.append([exch_pair[1], exch_pair[0], coin_pair])
 
-            # TODO: exploit opportunity: nos centramos en ese par de exchanges y monedas leyendo al máximo rate permitido. Analizar performance y meter mas o menos pasta en funcion de la tendencia...
+            # if profit is possible in the other direction exploit the pair as well
             exploit_pair(exch_pair, coin_pair, reverse=True)
 
-        # else:
+        # else:  # non proffit branch, just to log data.  TODO: To be removed
         #     logger_2.info(
         #         ',no opportunity, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
         #             exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
@@ -379,16 +432,19 @@ def cross(exch_pair, coin_pair):  # TODO: use threading here
     else:
         logger_1.error('some bids or aks are NULL, {} {} {} {} {} {} {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
 
-    # time.sleep(0)  # fine tune to not pass over exch rate limit! cuidado con los max rates!!!!
-    return g_storage.exch_locked, 0
+    return 0
 
 
 def exploit_pair(exch_pair, coin_pair, reverse=False):
-    # TODO: to be implemented
-    # global exch_locked
-    # global exploit_threads
-  
-    logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair)) 
+    """
+        launches the exploit thread
+    """
+    if not reverse:
+        logger_1.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+    else:
+        logger_1.info('launching {} and {} thread for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
+    
+    # launch the thread
     thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
     g_storage.exploit_threads.append(thread)
     thread.start()
@@ -397,14 +453,20 @@ def exploit_pair(exch_pair, coin_pair, reverse=False):
 
 
 def exploit_thread(exch_pair, coin_pair, reverse=False):
-    
-    # global exch_locked
+    """
+        exploit thread
+        it tracks a profit tendency between exchanges and coins pair
+        stores the profit until the tendence turns into negative or not profitable
+        TODO: this is where we have to IMPLEMENT THE ORDERS!!!!
+    """
+    # compose the log filename using exchanges and coins pair
     filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
 
     while True:
         loop_time = time.time()
         now = datetime.now()
 
+        # waits for the exchanges rate limits and gets the order books
         if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
             time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
 
@@ -424,11 +486,6 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             logger_1.critical('Thread error loading order books, request error on {}, consider adjusting timing limits'.format(exch_pair[1].name))
             continue
         
-        # orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-        # g_storage.timer[exch_pair[0].name][0] = time.time()
-        # orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-        # g_storage.timer[exch_pair[1].name][0] = time.time()
-
         try:
             bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
             ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
@@ -441,7 +498,8 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             vol_ask_2 = orderbook_2['asks'][0][1] if len (orderbook_2['asks']) > 0 else None
         except:
                 logger_1.error('Thread error: not possible getting bids/asksfrom {} or {}'.format(exch_pair[0].name, exch_pair[1].name))
-    
+
+        # gets the fees
         try:
             fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
         except:
@@ -451,6 +509,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
         except:
             fee_2 = 0.005
 
+        # logs results
         with open(filename, 'a') as csv_file:
             if not reverse:
                 csv_file.write(
@@ -462,24 +521,19 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                     '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
                         now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
                 )
+
         if ((bid_1 - ask_2)/ask_2 - (fee_1 + fee_2)) <= 0 and not reverse:
-            csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
-                )
-            logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+            logger_1.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
+            logger_1.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             return 0
 
         elif ((bid_2 - ask_1)/ask_1 - (fee_1 + fee_2)) <= 0 and reverse:
-            csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
-                )
-            logger_1.info('UNlocking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-            g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
+            logger_1.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
+            g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[1], exch_pair[0], coin_pair]))
+            logger_1.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
             return 0
-        
+
         try:
             time.sleep(EXPLOIT_THREAD_DELAY - (time.time() - loop_time))
         except:
@@ -503,9 +557,9 @@ def main():
 
 if __name__ ==  "__main__":
     logger_1 = setup_logger('first_logger', 'logs/logger.log', level=logging.DEBUG)
-    logger_1.info('--------------- starting point ---------------')
+    logger_1.info('--------------------------------------------- starting point ---------------------------------------------')
     logger_2 = setup_logger('second_logger', 'logs/opport.csv')
-    logger_2.info('--------------- starting point ---------------')
+    logger_2.info('--------------------------------------------- starting point ---------------------------------------------')
 
     # releasing the beast! XD 
     main()
