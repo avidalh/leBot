@@ -30,6 +30,8 @@ class GlobalStorage:
         self.exch_locked = list()  # list of exchanges/coins already in use (threaded)
         self.timer = {}  # time stampt and exchange delay
         self.coins_white_list = list()  # coins allowed to use/cross
+        self.initial_balance = 0
+        self.current_balance = 0
 
 
 g_storage = GlobalStorage()
@@ -274,23 +276,20 @@ def init_balances(exchanges):
     """
     
     for exchange in exchanges:
-        balances.set_balance(exchange.name, 'USDT', 1000.0, 1.0, 20.)
-        balances.set_balance(exchange.name, 'BTC', 1000.0, 6868.0, 0.001)
-        balances.set_balance(exchange.name, 'ETH', 1000.0, 158.0, 0.3)
-        balances.set_balance(exchange.name, 'XMR', 1000.0, 52.97, .5)
-        balances.set_balance(exchange.name, 'BCH', 1000.0, 232.0, .4)
-        balances.set_balance(exchange.name, 'XRP', 1000.0, .191, 10.)
-        balances.set_balance(exchange.name, 'ZEC', 1000.0, 36.25, .6)
-        balances.set_balance(exchange.name, 'EOS', 1000.0, 2.50, 10.)
-        balances.set_balance(exchange.name, 'LTC', 1000.0, 42.43, .5)
-        balances.set_balance(exchange.name, 'USDC', 1000.0, 1.0, 20)
+        balances.set_balance(exchange.name, 'USDT', 100.0, 1.0, 20.)
+        balances.set_balance(exchange.name, 'BTC', .0145, 6868.0, 0.001)
+        balances.set_balance(exchange.name, 'ETH', .633, 158.0, 0.3)
+        balances.set_balance(exchange.name, 'XMR', 1.888, 52.97, .5)
+        balances.set_balance(exchange.name, 'BCH', .43, 232.0, .4)
+        balances.set_balance(exchange.name, 'XRP', 523.0, .191, 10.)
+        balances.set_balance(exchange.name, 'ZEC', 2.78, 36.25, .6)
+        balances.set_balance(exchange.name, 'EOS', 40.0, 2.50, 10.)
+        balances.set_balance(exchange.name, 'LTC', 2.26, 42.43, .5)
+        balances.set_balance(exchange.name, 'USDC', 100.0, 1.0, 20)
     
         # balances.get_detailed_balance()
 
     return 0
-
-
-FULL_BALANCE = balances.get_full_balance()
 
 
 def get_order_books(exchanges, symbols_matrix): return 0  # TODO: to be removed
@@ -614,8 +613,12 @@ def selling_order_demo(exchange, coin_pair, bid, size, fee):
     quote_coin = coin_pair.split('/')[1]
 
     logger_1.info('pre selling balance on, {}, {}, {}, {}'.format(exchange.name, coin_pair, balances.get_coin_balance(exchange.name, base_coin)['amount'], balances.get_coin_balance(exchange.name, quote_coin)['amount']))
-    list_balances(start=True)
-    logger_4.info('full balance pre operation (USDT): {}, profit: {}'.format(balances.get_full_balance(), balances.get_full_balance()-FULL_BALANCE))
+    # list_balances(start=True)
+    logger_4.info('full balance pre operation (USDT): {}, profit: {}, acc profit: {}'.format(balances.get_full_balance(),
+                                                                                             balances.get_full_balance()-g_storage.current_balance,
+                                                                                             balances.get_full_balance()-g_storage.initial_balance
+                                                                                             ))
+    g_storage.current_balance = balances.get_full_balance()
     quote_amount = size * bid
     base_amount = -(size + fee * size)
     balances.update_balance(exchange.name, base_coin, base_amount)
@@ -638,14 +641,17 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
     balances.update_balance(exchange.name, quote_coin, quote_amount)
     logger_1.info('post buying balance on, {}, {}, {}, {}'.format(exchange.name, coin_pair, balances.get_coin_balance(exchange.name, base_coin)['amount'], balances.get_coin_balance(exchange.name, quote_coin)['amount']))
     list_balances(end=True)
-    logger_4.info('full balance post operation (USDT): {}, profit: {}'.format(balances.get_full_balance(), balances.get_full_balance()-FULL_BALANCE))
+    logger_4.info('full balance pos operation (USDT): {}, profit: {}, acc profit: {}'.format(balances.get_full_balance(),
+                                                                                             balances.get_full_balance()-g_storage.current_balance,
+                                                                                             balances.get_full_balance()-g_storage.initial_balance
+                                                                                             ))
 
     return 0
 
 
 def list_balances(start=False, end=False):
     if start:
-        logger_3.info('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
+        logger_3.info('------------------------------------------------------------------------------------------')
     detailed_balance = balances.get_detailed_balance()
     for element in detailed_balance:
         for key, value in zip(element.keys(), element.values()):
@@ -662,7 +668,7 @@ def list_balances(start=False, end=False):
                                 value[9]['USDC'])
                          )
     if end:
-        logger_3.info('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+        logger_3.info('------------------------------------------------------------------------------------------')
 
     # return 0
 
@@ -673,6 +679,7 @@ def main():
     load_markets(exchanges)
     # symbols_matrix = get_trading_pairs()
     init_balances(exchanges)
+    g_storage.initial_balance = balances.get_full_balance()
     list_balances()
 
     exch_pairs = pairs_generator(exchanges)
