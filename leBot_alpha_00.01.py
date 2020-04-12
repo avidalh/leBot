@@ -263,8 +263,9 @@ class Balance:
         if exchange in self.exchanges:
             return self.exchanges[exchange][coin]
 
+
 balances = Balance()
-FULL_BALANCE = balances.get_full_balance()
+
 
 def init_balances(exchanges):
     """
@@ -284,9 +285,12 @@ def init_balances(exchanges):
         balances.set_balance(exchange.name, 'LTC', 1000.0, 42.43, .5)
         balances.set_balance(exchange.name, 'USDC', 1000.0, 1.0, 20)
     
-        balances.get_detailed_balance()
+        # balances.get_detailed_balance()
 
     return 0
+
+
+FULL_BALANCE = balances.get_full_balance()
 
 
 def get_order_books(exchanges, symbols_matrix): return 0  # TODO: to be removed
