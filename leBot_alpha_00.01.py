@@ -439,7 +439,7 @@ def cross(exch_pair, coin_pair):
 
     # check if there is an ipportunity of profit in both directions
     if bid_1 and bid_2 and ask_1 and ask_2:
-        if ((bid_1 - ask_2)/ask_2) > (fee_1 + fee_2) * CROSSING_MARGIN:
+        if ((bid_1 - ask_2)/ask_2) > .008 :  #(fee_1 + fee_2) * CROSSING_MARGIN:
             logger_2.info(
                 ',   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
                     exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
@@ -450,7 +450,7 @@ def cross(exch_pair, coin_pair):
             # if profit is possible exploit the pair
             exploit_pair(exch_pair, coin_pair)
 
-        elif ((bid_2 - ask_1)/ask_1) > (fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
+        elif ((bid_2 - ask_1)/ask_1) > .008:  #(fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
             logger_2.info(
                 ',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
                     exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
