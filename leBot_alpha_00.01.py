@@ -10,13 +10,19 @@ from logging.handlers import RotatingFileHandler
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 # parameters
+
 DEMO_MODE = False  # TODO: implement a demo mode using balances
 DEBUG = True
 DEBUG_LEVEL = 0  # noy used by now
+
+LOG_PROFITS = False
+
 USE_THREADING = True  # only used in load markers function, TODO: to remove
+
 CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
 # EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized! TODO: to remove
+
 EXPLOIT_THREAD_DELAY = 60  # exploit thread period
 MAX_THREADS = 50  # limiting the number of threads
 PROFIT_THR_TO_OPEN_POSITIONS = 0.008
@@ -512,7 +518,8 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
     """
     
     # compose the log filename using exchanges and coins pair
-    filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
+    if LOG_PROFITS:
+        filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
 
     thread_number = len(g_storage.exploit_threads) -1  # the last in the queue
     logger.info('Thread {} STARTING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(thread_number))
@@ -607,10 +614,11 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             if not reverse and direct_profit >= PROFIT_THR_TO_OPEN_POSITIONS:
                 acc_direct_profit += direct_profit
                 direct_mean_profit = acc_direct_profit/iterations
-                csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
-                )
+                if LOG_PROFITS:
+                    csv_file.write(
+                        '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                            now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
+                    )
                 
                 if vol_bid_1 >= trading_size_1 and vol_ask_2 > trading_size_2:
                     
@@ -635,10 +643,11 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
             elif  reverse and reverse_profit >= PROFIT_THR_TO_OPEN_POSITIONS:
                 acc_reverse_profit += reverse_profit
                 reverse_mean_profit = acc_reverse_profit/iterations
-                csv_file.write(
-                    '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                        now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
-                )
+                if LOG_PROFITS:
+                    csv_file.write(
+                        '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
+                            now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
+                    )
 
                 if vol_bid_2 >= trading_size_2 and vol_ask_1 > trading_size_1:
 
