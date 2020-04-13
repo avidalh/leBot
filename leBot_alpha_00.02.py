@@ -25,10 +25,10 @@ TRADING_SIZE = 20  # $20
 
 EXPLOIT_THREAD_DELAY = 20  # exploit thread period
 MAX_THREADS = 50  # limiting the number of threads
-PROFIT_THR_TO_OPEN_POSITIONS = 0.008
-PROFIT_THR_TO_CLOSE_POSITIONS = 0.001  # .7% gap
+PROFIT_THR_TO_OPEN_POSITIONS  = 0.008
+PROFIT_THR_TO_CLOSE_POSITIONS = 0.000  # .8% gap
 MAX_ITER_TO_EXIT = 20
-TRADES_TO_ALLOW_CLOSING = 2
+TRADES_TO_ALLOW_CLOSING = 4
 
 
 class GlobalStorage:
@@ -148,47 +148,6 @@ def load_markets_thread(exchange, force):
     exchange.load_markets(force)
 
 
-def get_trading_pairs():  # TODO: to be removed
-    """
-        NOT USED
-        returns the trading coins to be used in the trading
-        TODO: to be removed
-    """
-    symbols_matrix = {      #1          #2        #3          #4         #5         #6         #7         #7         #8         #9          #10          #11         #12         #13
-        'coinbasepro': ['BTC/USDC', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'poloniex':    ['BTC/USDC', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'bittrex':     ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'binance':     ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'bitfinex':    ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'kraken':      ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'bitmex':      ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT'],
-        'okex':        ['BTC/USDT', 'BTC/USD', 'ETH/USD', 'BCH/USD', 'ZEC/USD', 'LTC/USD', 'XRP/USD', 'ADA/BTC', 'ADA/ETH', 'ADA/USDT', 'ADA/USDC', 'IOTA/BTC', 'IOTA/ETH', 'IOTA/USDT']
-    }
-    symbols_matrix_OLD_TO_DELETE = [  #cb pro       poloniex    bittrex     binance     bitfinex    kraken      bitmex      okex 
-                        ['BTC/USDC', 'BTC/USDC', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT', 'BTC/USDT'],
-                        ['BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD', 'BTC/USD'],
-
-                        ['ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD', 'ETH/USD'],
-                        ['BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD', 'BCH/USD'],
-
-                        ['ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD', 'ZEC/USD'],
-                        ['LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD', 'LTC/USD'],
-
-                        ['XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD', 'XRP/USD'],
-
-                        ['ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC', 'ADA/BTC'],
-                        ['ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH', 'ADA/ETH'],
-                        ['ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT', 'ADA/USDT'],
-                        ['ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC', 'ADA/USDC'],
-                        
-                        ['IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC', 'IOTA/BTC'],
-                        ['IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH', 'IOTA/ETH'],
-                        ['IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT', 'IOTA/USDT']
-                    ]
-    
-    return symbols_matrix
-
-
 def get_market_pairs(exchanges):
     """
         once the markets are loaded gets the coin pairs used on them    
@@ -209,15 +168,21 @@ class Balance:
     
     def set_balance(self, exchange: str, coin: str, balance: float, change: float, trading_size: float):
         if exchange not in self.exchanges:
-            self.exchanges.update({exchange: {coin: {'amount': balance, 'change': change, 'trading_size': trading_size}}})
+            self.exchanges.update({exchange: {coin: {'amount': balance, 'change': change, 'trading_size': trading_size, 'in_use': False}}})
         else:
             if coin not in self.exchanges[exchange]:
-                self.exchanges[exchange].update({coin: {'amount': balance, 'change': change, 'trading_size': trading_size}})
+                self.exchanges[exchange].update({coin: {'amount': balance, 'change': change, 'trading_size': trading_size, 'in_use': False}})
             else:
                 print('Error: exchange already has that coin in its balance')
                 return -1
         return 0
 
+    def lock_coin(self, exchange: str, coin: str):
+        self.exchanges[exchange][coin].update({'in_use': True})
+        return 0
+    def unlock_coin(self, exchange: str, coin: str):
+        self.exchanges[exchange][coin].update({'in_use': False})
+        return 0
 
     def update_change(self, coin, change):
         flag = False
@@ -464,7 +429,7 @@ def cross(exch_pair, coin_pair):
             g_storage.exch_locked.append([exch_pair[0], exch_pair[1], coin_pair])
 
             # if profit is possible exploit the pair
-            exploit_pair_(exch_pair, coin_pair)
+            exploit_pair(exch_pair, coin_pair)
 
         elif ((bid_2 - ask_1)/ask_1) >= PROFIT_THR_TO_OPEN_POSITIONS:  #(fee_1 + fee_2) * CROSSING_MARGIN:  # in the other direcction
         
@@ -476,7 +441,7 @@ def cross(exch_pair, coin_pair):
             g_storage.exch_locked.append([exch_pair[1], exch_pair[0], coin_pair])
 
             # if profit is possible in the other direction exploit the pair as well
-            exploit_pair_(exch_pair, coin_pair, reverse=True)
+            exploit_pair(exch_pair, coin_pair, reverse=True)
 
         # else:  # non proffit branch, just to log data.  TODO: To be removed
         #     opp_logger.info(
@@ -498,28 +463,10 @@ def exploit_pair(exch_pair, coin_pair, reverse=False):
     """
     if not reverse:
         logger.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+        thread = threading.Thread(target=exploit_thread, args=(exch_pair[0], exch_pair[1], coin_pair))
     else:
         logger.info('launching {} and {} thread for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
-    
-    # launch the thread
-    thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
-    g_storage.exploit_threads.append(thread)
-    g_storage.exploit_thread_number +=1
-    thread.start()
-
-    return 0
-
-
-def exploit_pair_(exch_pair, coin_pair, reverse=False):
-    """
-        launches the exploit thread
-    """
-    if not reverse:
-        logger.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-        thread = threading.Thread(target=exploit_thread_, args=(exch_pair[0], exch_pair[1], coin_pair))
-    else:
-        logger.info('launching {} and {} thread for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
-        thread = threading.Thread(target=exploit_thread_, args=(exch_pair[1], exch_pair[0], coin_pair))
+        thread = threading.Thread(target=exploit_thread, args=(exch_pair[1], exch_pair[0], coin_pair))
     # launch the thread
     # thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
     g_storage.exploit_threads.append(thread)
@@ -529,7 +476,7 @@ def exploit_pair_(exch_pair, coin_pair, reverse=False):
     return 0
 
 
-def exploit_thread_(exch_0, exch_1, coin_pair):
+def exploit_thread(exch_0, exch_1, coin_pair):
     """
         exploit thread
         it tracks a profit tendency between exchanges and coins pair
@@ -609,6 +556,12 @@ def exploit_thread_(exch_0, exch_1, coin_pair):
         # gets the trading sizes and coins names
         base_coin = coin_pair.split('/')[0]
         quote_coin = coin_pair.split('/')[1]
+
+        # locks coins in exchange
+        balances.lock_coin(exch_0.name, base_coin)
+        balances.lock_coin(exch_0.name, quote_coin)
+        balances.lock_coin(exch_1.name, base_coin)
+        balances.lock_coin(exch_1.name, quote_coin)
         
         trading_size_0 = balances.get_coin_balance(exch_0.name, base_coin)['trading_size']
         trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
@@ -677,222 +630,13 @@ def exploit_thread_(exch_0, exch_1, coin_pair):
         else:
             if iterations_failed >= MAX_ITER_TO_EXIT and ready_to_exit:
                 logger.info('Thread {} EXITING >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(thread_number))
-                return 0
-        try:
-            time.sleep(EXPLOIT_THREAD_DELAY + random.randint(-5, 5) - (time.time() - loop_time))  # delay time with a bit of stagger to avoid always falling on same point
-        except:
-            pass
-
-
-# TODO: redo this procedure without using reverse by implementing a generic procedure...
-def exploit_thread(exch_pair, coin_pair, reverse=False):
-    """
-        exploit thread
-        it tracks a profit tendency between exchanges and coins pair
-        stores the profit until the tendence turns into negative or not profitable
-        TODO: this is where we have to IMPLEMENT THE ORDERS!!!!
-    """
-    
-    # compose the log filename using exchanges and coins pair
-    filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
-
-    thread_number = g_storage.exploit_thread_number
-    logger.info('Thread {} STARTING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(thread_number))
-    
-    # movements accumulated
-    accumulated_base_sold_direct = 0  # on exch 1
-    accumulated_base_bought_direct = 0  # on exch 2
-    accumulated_base_sold_reverse = 0    # I think these last two are not necessary
-    accumulated_base_bought_reverse = 0  #
-    
-    # statistics data, still not used
-    iterations = 1
-    iterations_failed = 0
-    ready_to_exit = True
-    acc_direct_profit = 0
-    acc_reverse_profit = 0
-    direct_mean_profit = 0
-    reverse_mean_profit = 0
-
-    while True:
-        loop_time = time.time()
-        now = datetime.now()
-
-        # waits for the exchanges rate limits and gets the order books
-        if (g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0])) > 0:
-            time.sleep(g_storage.timer[exch_pair[0].name][1] - (time.time() - g_storage.timer[exch_pair[0].name][0]))
-
-        if (g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1])) > 0:
-            time.sleep(g_storage.timer[exch_pair[1].name][1] - (time.time() - g_storage.timer[exch_pair[1].name][1]))
-
-        try:
-            orderbook_1 = exch_pair[0].fetch_order_book (coin_pair, limit=5)
-            g_storage.timer[exch_pair[0].name][0] = time.time()
-        except:
-            logger.critical('Thread {} error loading order books, request error on \t{}, awaiting for a while'.format(thread_number, exch_pair[0].name))
-            # g_storage.timer[exch_pair[0].name][0] = time.time()
-            time.sleep(random.randint(5, 14))  # wait a moment...
-            continue
-        try:
-            orderbook_2 = exch_pair[1].fetch_order_book (coin_pair, limit=5)
-            g_storage.timer[exch_pair[1].name][0] = time.time()
-        except:
-            logger.critical('Thread {} error loading order books, request error on \t{}, awaiting for a while'.format(thread_number, exch_pair[1].name))
-            # g_storage.timer[exch_pair[1].name][0] = time.time()
-            time.sleep(random.randint(5, 14))  # wait a moment...
-            continue
-        
-        try:  # TODO: use more elements to set bid and ask if volume is not enough...
-            bid_1 = orderbook_1['bids'][0][0] if len (orderbook_1['bids']) > 0 else None
-            ask_1 = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
-            vol_bid_1 = orderbook_1['bids'][0][1] if len (orderbook_1['bids']) > 0 else None
-            vol_ask_1 = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
-
-            bid_2 = orderbook_2['bids'][0][0] if len (orderbook_2['bids']) > 0 else None
-            ask_2 = orderbook_2['asks'][0][0] if len (orderbook_2['asks']) > 0 else None
-            vol_bid_2 = orderbook_2['bids'][0][1] if len (orderbook_2['bids']) > 0 else None
-            vol_ask_2 = orderbook_2['asks'][0][1] if len (orderbook_2['asks']) > 0 else None
-            
-        except:
-            logger.error('Thread {} error: not possible getting bids/asksfrom \t{} or \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name))
-            continue
-
-        # gets the fees
-        try:
-            fee_1 = max(exch_pair[0].fees['trading']['maker'], exch_pair[0].fees['trading']['taker'])
-        except:
-            fee_1 = 0.005
-        try:
-            fee_2 = max(exch_pair[1].fees['trading']['maker'], exch_pair[1].fees['trading']['taker'])
-        except:
-            fee_2 = 0.005
-
-        direct_profit = (bid_1 - ask_2)/ask_2 - (fee_1 + fee_2)
-        reverse_profit = (bid_2 - ask_1)/ask_1 - (fee_1 + fee_2)
-
-        # gets the trading sizes and coins names
-        base_coin = coin_pair.split('/')[0]
-        quote_coin = coin_pair.split('/')[1]
-        
-        trading_size_1 = balances.get_coin_balance(exch_pair[0].name, base_coin)['trading_size']
-        trading_size_2 = balances.get_coin_balance(exch_pair[1].name, base_coin)['trading_size']
-        
-        base_coin_balance_1 = balances.get_coin_balance(exch_pair[0].name, base_coin)['amount']
-        quote_coin_balance_2 = balances.get_coin_balance(exch_pair[1].name, quote_coin)['amount']
-        
-        base_coin_balance_2 = balances.get_coin_balance(exch_pair[1].name, base_coin)['amount']
-        quote_coin_balance_1 = balances.get_coin_balance(exch_pair[0].name, quote_coin)['amount']
-
-
-        # logs results
-        with open(filename, 'a') as csv_file:
-            if not reverse and direct_profit >= PROFIT_THR_TO_OPEN_POSITIONS:
-                acc_direct_profit += direct_profit
-                direct_mean_profit = acc_direct_profit/iterations
-                if LOG_PROFITS:
-                    csv_file.write(
-                        '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                            now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2))
-                    )
                 
-                if vol_bid_1 >= trading_size_1 and vol_ask_2 > trading_size_2:
-                    
-                    if (base_coin_balance_1 >= trading_size_1 * (1+fee_1)) and (quote_coin_balance_2 >= (trading_size_2 * (1+fee_2) * ask_2)) :
-                        
-                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
-                        selling_order_demo(exch_pair[0], coin_pair, bid_1, trading_size_1, fee_1)
-                        buying_order_demo (exch_pair[1], coin_pair, ask_2, trading_size_2, fee_2)
-                        accumulated_base_sold_direct += trading_size_1 * (1 + fee_1)
-                        accumulated_base_bought_direct += trading_size_2
-                        iterations +=1
-                        ready_to_exit = False
-                    
-                    else:
-                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
-                        logger.info('Thread {} REBALANCING NEEDED________________________________________________________'.format(thread_number))
-
-
-                else:
-                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
-
-            elif  reverse and reverse_profit >= PROFIT_THR_TO_OPEN_POSITIONS:
-                acc_reverse_profit += reverse_profit
-                reverse_mean_profit = acc_reverse_profit/iterations
-                if LOG_PROFITS:
-                    csv_file.write(
-                        '{}, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}\n'.format(
-                            now.strftime("%Y-%m-%d %H:%M:%S"), exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2))
-                    )
-
-                if vol_bid_2 >= trading_size_2 and vol_ask_1 > trading_size_1:
-
-                    if (base_coin_balance_2 >= trading_size_2 * (1+fee_2)) and (quote_coin_balance_1 >= trading_size_1 * (1+fee_1) * ask_1):
-                        
-                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair))
-                        selling_order_demo(exch_pair[1], coin_pair, bid_2, trading_size_2, fee_2)
-                        buying_order_demo (exch_pair[0], coin_pair, ask_1, trading_size_1, fee_1)
-                        accumulated_base_sold_reverse += trading_size_2 * (1 + fee_2)
-                        accumulated_base_bought_reverse += trading_size_1
-                        iterations +=1
-                        ready_to_exit = False
-                    
-                    else:
-                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair))
-                        logger.info('Thread {} REBALANCING NEEDED_______________________________________________________R'.format(thread_number, ))
-
-                else:
-                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
-            
-            else:
-                if not reverse:
-                    logger.info('Thread {}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair, direct_profit))
-                else:
-                    logger.info('Thread {}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair, reverse_profit))
+                # unlock coins
+                balances.lock_coin(exch_0.name, base_coin)
+                balances.lock_coin(exch_0.name, quote_coin)
+                balances.lock_coin(exch_1.name, base_coin)
+                balances.lock_coin(exch_1.name, quote_coin)
                 
-                iterations_failed +=1
-
-        if direct_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_direct >= TRADES_TO_ALLOW_CLOSING * trading_size_1 and not reverse:
-            # logger.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-            # g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
-            # logger.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-            
-            # closing positions
-            buying_order_demo (exch_pair[0], coin_pair, ask_1, accumulated_base_sold_direct, fee_1)
-            accumulated_base_sold_direct = 0
-            selling_order_demo(exch_pair[1], coin_pair, bid_2, accumulated_base_bought_direct, fee_2)
-            accumulated_base_bought_direct = 0
-            logger.info('Thread {} CLOSING POSITIONS_____________________________________________________________'.format(thread_number))
-            
-            iterations = 1
-            ready_to_exit = True
-            acc_direct_profit = 0
-            direct_mean_profit = 0
-
-
-            # return 0
-
-        elif reverse_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_reverse >= TRADES_TO_ALLOW_CLOSING * trading_size_2 and reverse:
-            # logger.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
-            # g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[1], exch_pair[0], coin_pair]))
-            # logger.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
-            
-            # closing positions 
-            buying_order_demo (exch_pair[1], coin_pair, ask_2, accumulated_base_sold_reverse, fee_2)
-            accumulated_base_sold_reverse = 0
-            selling_order_demo(exch_pair[0], coin_pair, bid_1, accumulated_base_bought_reverse, fee_1)
-            accumulated_base_bought_reverse = 0
-            logger.info('Thread {} CLOSING POSITIONS____________________________________________________________R'.format(thread_number))
-            
-            iterations = 1
-            ready_to_exit = True
-            acc_reverse_profit = 0
-            reverse_mean_profit = 0
-            
-            # return 0
-        
-        else:
-            if iterations_failed >= MAX_ITER_TO_EXIT and ready_to_exit:
-                logger.info('Thread {} EXITING >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(thread_number))
                 return 0
 
         try:
@@ -1001,11 +745,15 @@ def list_balances(start=False, end=False):
     # return 0
 
 
+def exchange_balancer(exchange):
+
+    return 0
+
+
 def main():
     start_time = time.time()
     exchanges = create_exchanges()
     load_markets(exchanges)
-    # symbols_matrix = get_trading_pairs()
     init_balances(exchanges)
     g_storage.initial_balance = balances.get_full_balance()
     list_balances()
@@ -1020,11 +768,14 @@ def main():
 
 if __name__ ==  "__main__":
     logger = setup_logger('first_logger', 'logs/logger.log', level=logging.DEBUG)
-    logger.info('--------------------------------------------- starting point ---------------------------------------------')
+    logger.info        ('--------------------------------------------- starting point ---------------------------------------------')
+    
     opp_logger = setup_logger('second_logger', 'logs/opport.csv')
-    opp_logger.info('--------------------------------------------- starting point ---------------------------------------------')
+    opp_logger.info    ('--------------------------------------------- starting point ---------------------------------------------')
+    
     balance_csv_logger = setup_logger('third_logger', 'logs/balances.csv')
     balance_csv_logger.info('')
+    
     balance_logger = setup_logger('fourth_logger', 'logs/balances.log')
     balance_logger.info('--------------------------------------------- starting point ---------------------------------------------')
 
