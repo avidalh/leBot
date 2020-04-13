@@ -22,6 +22,7 @@ MAX_THREADS = 50  # limiting the number of threads
 PROFIT_THR_TO_OPEN_POSITIONS = 0.008
 PROFIT_THR_TO_CLOSE_POSITIONS = 0.004  # 3% below entry level
 MAX_ITER_TO_EXIT = 100
+TRADES_TO_ALLOW_CLOSING = 4
 
 
 class GlobalStorage:
@@ -277,20 +278,20 @@ def init_balances(exchanges):
         initializes an instance of Balance class
         used in demo mode
     """
-    
+    FACTOR = 1
     for exchange in exchanges:  #           coin    balance     change USDT  trading size
-        balances.set_balance(exchange.name, 'USDT', 100.0*10,       1.0,     20.)
-        balances.set_balance(exchange.name, 'BTC',     .0145*10, 6868.0,       .001)
-        balances.set_balance(exchange.name, 'ETH',     .633*10,    158.0,      .3)
-        balances.set_balance(exchange.name, 'XMR',    1.888*10,     52.97,     .5)
-        balances.set_balance(exchange.name, 'BCH',     .43*10,     232.0,      .4)
-        balances.set_balance(exchange.name, 'XRP',  523.0*10,         .191,  10.)
-        balances.set_balance(exchange.name, 'ZEC',    2.78*10,      36.25,     .6)
-        balances.set_balance(exchange.name, 'EOS',   40.0*10,        2.50,   10.)
-        balances.set_balance(exchange.name, 'LTC',    2.26*10,      42.43,     .5)
-        balances.set_balance(exchange.name, 'USDC', 100.0*10,        1.0,    20.)
-        balances.set_balance(exchange.name, 'EUR',  100.0*10,        1.094,  20.)
-        balances.set_balance(exchange.name, 'USD',  100.0*10,        1.0,    20.)
+        balances.set_balance(exchange.name, 'USDT', 100.0 * FACTOR,       1.0,     20.)
+        balances.set_balance(exchange.name, 'BTC',     .0145 * FACTOR,  6868.0,      .001)
+        balances.set_balance(exchange.name, 'ETH',     .633 * FACTOR,    158.0,      .3)
+        balances.set_balance(exchange.name, 'XMR',    1.888 * FACTOR,     52.97,     .5)
+        balances.set_balance(exchange.name, 'BCH',     .43 * FACTOR,     232.0,      .4)
+        balances.set_balance(exchange.name, 'XRP',  523.0 * FACTOR,         .191,  10.)
+        balances.set_balance(exchange.name, 'ZEC',    2.78 * FACTOR,      36.25,     .6)
+        balances.set_balance(exchange.name, 'EOS',   40.0 * FACTOR,        2.50,   10.)
+        balances.set_balance(exchange.name, 'LTC',    2.26 * FACTOR,      42.43,     .5)
+        balances.set_balance(exchange.name, 'USDC', 100.0 * FACTOR,        1.0,    20.)
+        balances.set_balance(exchange.name, 'EUR',  100.0 * FACTOR,        1.094,  20.)
+        balances.set_balance(exchange.name, 'USD',  100.0 * FACTOR,        1.0,    20.)
 
     
         # balances.get_detailed_balance()
@@ -501,6 +502,7 @@ def exploit_pair(exch_pair, coin_pair, reverse=False):
     return 0
 
 
+# TODO: redo this procedure without using reverse by implementing a generic procedure...
 def exploit_thread(exch_pair, coin_pair, reverse=False):
     """
         exploit thread
@@ -612,9 +614,9 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                 
                 if vol_bid_1 >= trading_size_1 and vol_ask_2 > trading_size_2:
                     
-                    if (base_coin_balance_1 >= trading_size_1 * (1+fee_1)) and (quote_coin_balance_2 >= (thread_number, trading_size_2 * (1+fee_2) * ask_2)) :
+                    if (base_coin_balance_1 >= trading_size_1 * (1+fee_1)) and (quote_coin_balance_2 >= (trading_size_2 * (1+fee_2) * ask_2)) :
                         
-                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
+                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
                         selling_order_demo(exch_pair[0], coin_pair, bid_1, trading_size_1, fee_1)
                         buying_order_demo (exch_pair[1], coin_pair, ask_2, trading_size_2, fee_2)
                         accumulated_base_sold_direct += trading_size_1 * (1 + fee_1)
@@ -623,12 +625,12 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                         ready_to_exit = False
                     
                     else:
-                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
+                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
                         logger.info('Thread {} REBALANCING NEEDED________________________________________________________'.format(thread_number))
 
 
                 else:
-                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
+                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
 
             elif  reverse and reverse_profit >= PROFIT_THR_TO_OPEN_POSITIONS:
                 acc_reverse_profit += reverse_profit
@@ -651,16 +653,21 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                         ready_to_exit = False
                     
                     else:
-                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair))
+                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair))
                         logger.info('Thread {} REBALANCING NEEDED_______________________________________________________R'.format(thread_number, ))
 
                 else:
-                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
+                    logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair))
             
             else:
+                if not reverse:
+                    logger.info('Thread {}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_pair[0].name, exch_pair[1].name, coin_pair, direct_profit))
+                else:
+                    logger.info('Thread {}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_pair[1].name, exch_pair[0].name, coin_pair, reverse_profit))
+                
                 iterations_failed +=1
 
-        if direct_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_direct >= 20*trading_size_1 and not reverse:
+        if direct_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_direct >= TRADES_TO_ALLOW_CLOSING * trading_size_1 and not reverse:
             # logger.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
             # g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[0], exch_pair[1], coin_pair]))
             # logger.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
@@ -680,7 +687,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
 
             # return 0
 
-        elif reverse_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_reverse >= 20*trading_size_2 and reverse:
+        elif reverse_profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold_reverse >= TRADES_TO_ALLOW_CLOSING * trading_size_2 and reverse:
             # logger.info('UN-locking exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
             # g_storage.exch_locked.pop(g_storage.exch_locked.index([exch_pair[1], exch_pair[0], coin_pair]))
             # logger.info('finishing thread for exchanges {} and {} for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
