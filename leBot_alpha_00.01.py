@@ -23,7 +23,7 @@ CROSSING_MARGIN = 1.05  # 5% above delta
 TRADING_SIZE = 20  # $20
 # EXCH_REQUEST_DELAY = 1.8  # seconds, take care here: if rate overpassed yo could get penalized! TODO: to remove
 
-EXPLOIT_THREAD_DELAY = 60  # exploit thread period
+EXPLOIT_THREAD_DELAY = 20  # exploit thread period
 MAX_THREADS = 50  # limiting the number of threads
 PROFIT_THR_TO_OPEN_POSITIONS = 0.008
 PROFIT_THR_TO_CLOSE_POSITIONS = 0.004  # 3% below entry level
@@ -285,9 +285,9 @@ def init_balances(exchanges):
         used in demo mode
     """
     FACTOR = 1
-    for exchange in exchanges:  #           coin    balance     change USDT  trading size
+    for exchange in exchanges:  #           coin    balance          change USDT  trading size
         balances.set_balance(exchange.name, 'USDT', 100.0 * FACTOR,       1.0,     20.)
-        balances.set_balance(exchange.name, 'BTC',     .0145 * FACTOR,  6868.0,      .001)
+        balances.set_balance(exchange.name, 'BTC',     .0145 * FACTOR,  6868.0,      .0035)
         balances.set_balance(exchange.name, 'ETH',     .633 * FACTOR,    158.0,      .3)
         balances.set_balance(exchange.name, 'XMR',    1.888 * FACTOR,     52.97,     .5)
         balances.set_balance(exchange.name, 'BCH',     .43 * FACTOR,     232.0,      .4)
@@ -518,8 +518,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
     """
     
     # compose the log filename using exchanges and coins pair
-    if LOG_PROFITS:
-        filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
+    filename = './logs/' + exch_pair[0].name + '-' + exch_pair[1].name + '-' + coin_pair.replace('/', '-') + '.csv' if not reverse else './logs/' + exch_pair[1].name + '-' + exch_pair[0].name + '-' + coin_pair.replace('/', '-') + '.csv'
 
     thread_number = len(g_storage.exploit_threads) -1  # the last in the queue
     logger.info('Thread {} STARTING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(thread_number))
@@ -721,7 +720,7 @@ def exploit_thread(exch_pair, coin_pair, reverse=False):
                 return 0
 
         try:
-            time.sleep(EXPLOIT_THREAD_DELAY - (time.time() - loop_time))
+            time.sleep(EXPLOIT_THREAD_DELAY + random.randint(-5, 5) - (time.time() - loop_time))  # delay time with a bit of stagger to avoid always falling on same point
         except:
             pass
 
