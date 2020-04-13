@@ -250,10 +250,10 @@ def init_balances(exchanges):
         initializes an instance of Balance class
         used in demo mode
     """
-    FACTOR = 2
+    FACTOR = 10
     for exchange in exchanges:  #           coin    balance          change USDT  trading size
         balances.set_balance(exchange.name, 'BCH',    0.43 * FACTOR,     232.0,     0.4)
-        balances.set_balance(exchange.name, 'BTC',    0.0145 * FACTOR,  6868.0,     0.0035)
+        balances.set_balance(exchange.name, 'BTC',    0.0146 * FACTOR,  6868.0,     0.0035)
         balances.set_balance(exchange.name, 'ETH',    0.633 * FACTOR,    158.0,     0.3)
         balances.set_balance(exchange.name, 'LTC',    2.26 * FACTOR,      42.43,    0.5)
         balances.set_balance(exchange.name, 'EOS',   40.0 * FACTOR,        2.50,   10.0)
@@ -745,8 +745,12 @@ def list_balances(start=False, end=False):
     # return 0
 
 
-def exchange_balancer(exchange):
-
+# TODO: implement balancer
+def exchange_balancer(exchange, coin_dest):
+    for symbol, coin in zip(balances.exchanges[exchange], balances.exchanges[exchange].values()):
+        if not coin['in_use'] and coin['amount'] >= 100 / coin['change']:
+            print(symbol, coin['amount'])
+        
     return 0
 
 
@@ -757,6 +761,9 @@ def main():
     init_balances(exchanges)
     g_storage.initial_balance = balances.get_full_balance()
     list_balances()
+    
+    # testing balancer
+    exchange_balancer('OKEX', 'BTC')
 
     exch_pairs = pairs_generator(exchanges)
     pairs_to_cross = cross_exch_pairs(exch_pairs)
