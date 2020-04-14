@@ -25,8 +25,8 @@ TRADING_SIZE = 20  # $20
 
 EXPLOIT_THREAD_DELAY = 20  # exploit thread period
 MAX_THREADS = 50  # limiting the number of threads
-PROFIT_THR_TO_OPEN_POSITIONS  = 0.008
-PROFIT_THR_TO_CLOSE_POSITIONS = 0.000  # .8% gap
+PROFIT_THR_TO_OPEN_POSITIONS  = 0.006
+PROFIT_THR_TO_CLOSE_POSITIONS = 0.002  # gap
 MAX_ITER_TO_EXIT = 20
 TRADES_TO_ALLOW_CLOSING = 4
 
@@ -514,16 +514,19 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             time.sleep(g_storage.timer[exch_1.name][1] - (time.time() - g_storage.timer[exch_1.name][1]))
 
         try:
-            orderbook_0 = exch_0.fetch_order_book (coin_pair, limit=5)
+            orderbook_0 = exch_0.fetch_order_book (coin_pair, limit=10)
             g_storage.timer[exch_0.name][0] = time.time()
+
         except:
             logger.critical('Thread {} error loading order books, request error on \t{}, awaiting for a while'.format(thread_number, exch_0.name))
             # g_storage.timer[exch_0.name][0] = time.time()
             time.sleep(random.randint(5, 14))  # wait a moment...
             continue
+
         try:
-            orderbook_1 = exch_1.fetch_order_book (coin_pair, limit=5)
+            orderbook_1 = exch_1.fetch_order_book (coin_pair, limit=10)
             g_storage.timer[exch_1.name][0] = time.time()
+        
         except:
             logger.critical('Thread {} error loading order books, request error on \t{}, awaiting for a while'.format(thread_number, exch_1.name))
             # g_storage.timer[exch_1.name][0] = time.time()
@@ -531,11 +534,11 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             continue
         
         try:  # TODO: use more elements to set bid and ask if volume is not enough...
-            bid = orderbook_0['bids'][0][0] if len (orderbook_0['bids']) > 0 else None
-            vol_bid = orderbook_0['bids'][0][1] if len (orderbook_0['bids']) > 0 else None
+            bids     = [item[0] for item in orderbook_0['bids'][:5]] if len (orderbook_0['bids']) > 0 else None
+            vol_bids = [item[1] for item in orderbook_0['bids'][:5]] if len (orderbook_0['bids']) > 0 else None
 
-            ask = orderbook_1['asks'][0][0] if len (orderbook_1['asks']) > 0 else None
-            vol_ask = orderbook_1['asks'][0][1] if len (orderbook_1['asks']) > 0 else None
+            asks =     [item[0] for item in orderbook_1['asks'][:5]] if len (orderbook_1['asks']) > 0 else None
+            vol_asks = [item[1] for item in orderbook_1['asks'][:5]] if len (orderbook_1['asks']) > 0 else None
             
         except:
             logger.error('Thread {} error: not possible getting bids/asksfrom \t{} or \t{}'.format(thread_number, exch_0.name, exch_1.name))
@@ -550,6 +553,11 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             fee_1 = max(exch_1.fees['trading']['maker'], exch_1.fees['trading']['taker'])
         except:
             fee_1 = 0.005
+
+        bid = bids[0]
+        ask = asks[0]
+        vol_bid = vol_bids[0]
+        vol_ask = vol_asks[0]
 
         profit = (bid - ask)/ask - (fee_0 + fee_1)
 
@@ -587,12 +595,14 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                 if vol_bid >= trading_size_0 and vol_ask > trading_size_1:
                     
                     if (base_coin_balance_0 >= trading_size_0 * (1+fee_0)) and (quote_coin_balance_1 >= (trading_size_1 * (1+fee_1) * ask)) :
-                        
                         logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                        
                         selling_order_demo(exch_0, coin_pair, bid, trading_size_0, fee_0)
                         buying_order_demo (exch_1, coin_pair, ask, trading_size_1, fee_1)
+                        
                         accumulated_base_sold += trading_size_0 * (1 + fee_0)
                         accumulated_base_bought += trading_size_1
+                        
                         iterations +=1
                         ready_to_exit = False
                     
@@ -600,6 +610,44 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                         logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
                         logger.info('Thread {} REBALANCING NEEDED________________________________________________________'.format(thread_number))
 
+                elif (vol_bid + vol_bids[1]) > (vol_ask + vol_asks[1]) > trading_size_1:  # trying a bit higher in the bids/asks list
+                    if (base_coin_balance_0 >= trading_size_0 * (1+fee_0)) and (quote_coin_balance_1 >= (trading_size_1 * (1+fee_1) * ask)) :
+                        new_bid = bids[1]
+                        new_ask = asks[1]
+                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                        
+                        selling_order_demo(exch_0, coin_pair, new_bid, trading_size_0, fee_0)
+                        buying_order_demo (exch_1, coin_pair, new_ask, trading_size_1, fee_1)
+                        
+                        accumulated_base_sold += trading_size_0 * (1 + fee_0)
+                        accumulated_base_bought += trading_size_1
+                        
+                        iterations +=1
+                        ready_to_exit = False
+
+                    else:
+                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                        logger.info('Thread {} REBALANCING NEEDED________________________________________________________'.format(thread_number))
+
+                elif (vol_bid + vol_bids[1] + vol_bids[2]) > (vol_ask + vol_asks[1] + vol_asks[2]) > trading_size_1:  # trying a bit higher in the bids/asks list
+                    if (base_coin_balance_0 >= trading_size_0 * (1+fee_0)) and (quote_coin_balance_1 >= (trading_size_1 * (1+fee_1) * ask)) :
+                        new_bid = bids[2]
+                        new_ask = asks[2]
+                        logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                        
+                        selling_order_demo(exch_0, coin_pair, new_bid, trading_size_0, fee_0)
+                        buying_order_demo (exch_1, coin_pair, new_ask, trading_size_1, fee_1)
+                        
+                        accumulated_base_sold += trading_size_0 * (1 + fee_0)
+                        accumulated_base_bought += trading_size_1
+                        
+                        iterations +=1
+                        ready_to_exit = False
+
+                    else:
+                        logger.info('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                        logger.info('Thread {} REBALANCING NEEDED________________________________________________________'.format(thread_number))
+                    
                 else:
                     logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
 
@@ -614,12 +662,13 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             # logger.info('finishing thread for exchanges {} and {} for {}'.format(exch_0.name, exch_1.name, coin_pair))
             
             # closing positions
-            buying_order_demo(exch_0, coin_pair, ask, accumulated_base_sold, fee_0)
-            accumulated_base_sold_direct = 0
-            
             selling_order_demo(exch_1, coin_pair, bid, accumulated_base_bought, fee_1)
-            accumulated_base_bought_direct = 0
-
+            accumulated_base_bought = 0
+            
+            buying_order_demo(exch_0, coin_pair, ask, accumulated_base_sold, fee_0)
+            accumulated_base_sold = 0
+            
+            
             logger.info('Thread {} CLOSING POSITIONS_____________________________________________________________'.format(thread_number))
             
             iterations = 1
@@ -650,14 +699,18 @@ def selling_order_demo(exchange, coin_pair, bid, size, fee):
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
 
-    logger.info('pre selling balance on, \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
+    logger.info('pre  selling balance on, \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
                                                                   coin_pair,
                                                                   balances.get_coin_balance(exchange.name, base_coin)['amount'],
                                                                   balances.get_coin_balance(exchange.name, quote_coin)['amount']))
 
     # list_balances(start=True)
-    balance_logger.info('full balance pre selling operation (USDT): \t{}, acc profit: \t{}'.format(balances.get_full_balance(),
-                                                                                             balances.get_full_balance()-g_storage.initial_balance))
+    # balance_logger.info('full balance pre selling operation (USDT): \t{}, acc profit: \t{}'.format(balances.get_full_balance(),
+    #                                                                                          balances.get_full_balance()-g_storage.initial_balance))
+                                                                                             
+    balance_logger.info(',pre selling (USDT):, \t{}, \t{}, \t{}'.format(balances.get_full_balance(),
+                                                                       balances.get_full_balance()-g_storage.current_balance,
+                                                                       balances.get_full_balance()-g_storage.initial_balance))
 
     g_storage.current_balance = balances.get_full_balance()
     
@@ -687,7 +740,7 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
 
-    logger.info('pre buying balance on, \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
+    logger.info('pre buying balance on,   \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
                                                                  coin_pair,
                                                                  balances.get_coin_balance(exchange.name, base_coin)['amount'],
                                                                  balances.get_coin_balance(exchange.name, quote_coin)['amount']))
@@ -705,16 +758,15 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
     
     # g_storage.current_balance = balances.get_full_balance()
     
-    logger.info('post buying balance on, \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
+    logger.info('post buying balance on,  \t{}, \t{}, \t{}, \t{}'.format(exchange.name,
                                                                   coin_pair,
                                                                   balances.get_coin_balance(exchange.name, base_coin)['amount'],
                                                                   balances.get_coin_balance(exchange.name, quote_coin)['amount']))
     
     list_balances(end=True)  # log balances table
-    balance_logger.info('full balance pos buying operation (USDT): \t{}, profit: \t{}, acc profit: \t{}'.format(balances.get_full_balance(),
-                                                                                             balances.get_full_balance()-g_storage.current_balance,
-                                                                                             balances.get_full_balance()-g_storage.initial_balance))
-
+    balance_logger.info(',post buying (USDT):, \t{}, \t{}, \t{}'.format(balances.get_full_balance(),
+                                                                        balances.get_full_balance()-g_storage.current_balance,
+                                                                        balances.get_full_balance()-g_storage.initial_balance))
     return 0
 
 
