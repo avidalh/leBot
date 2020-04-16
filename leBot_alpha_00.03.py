@@ -134,7 +134,7 @@ def create_exchanges():
 
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kucoin, bitmex, okex]
     timing_limits = [.35,      .35,       1,     .35,        2,        1,      1,    .35]  # requesting period limit per exchange
-    timing_limits = [0, 0, 0, 0, 0, 0, 0, 0]  # rateLimit Enabled on exchange
+    # timing_limits = [0, 0, 0, 0, 0, 0, 0, 0]  # rateLimit Enabled on exchange
 
     for exchange, timing in zip(exchanges, timing_limits):
         g_storage.timer[exchange.name] = [0, timing]
@@ -279,7 +279,7 @@ def init_balances(exchanges):
         used in demo mode
     """
     FACTOR = 10
-    SIZE_FACTOR = 2
+    SIZE_FACTOR = 1
     for exchange in exchanges:               # coin    balance              change USDT    trading size
         balances.set_balance(exchange.name, 'BCH',    0.43   * FACTOR,          232.0,          0.4    * SIZE_FACTOR)
         balances.set_balance(exchange.name, 'BTC',    0.0146 * FACTOR,         6868.0,          0.0035 * SIZE_FACTOR)
@@ -642,16 +642,14 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                 if (base_coin_balance_0 >= trading_size_0 * (1+fee_0)) and (quote_coin_balance_1 >= (trading_size_1 * (1+fee_1) * ask)):
                     logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
 
-
                     # calls selling routine
                     pre_trade_balance_base  = balances.get_coin_balance(exch_0.name, base_coin)['amount']
                     pre_trade_balance_quote = balances.get_coin_balance(exch_0.name, quote_coin)['amount']
                     
                     selling_order_demo(exch_0, coin_pair, bid, trading_size_0, fee_0)
                     
-                    log_str = 'thread {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
-                    
-                    balance_logger.info(str('sell ,' + log_str).format(
+                    log_str = ' thrd {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
+                    balance_logger.info(str('sell   ,' + log_str).format(
                                                     thread_number,
                                                     exch_0.name[:5],
                                                     coin_pair,
@@ -672,7 +670,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                     
                     buying_order_demo (exch_1, coin_pair, ask, trading_size_1, fee_1)
 
-                    balance_logger.info(str('buy  ,' + log_str).format(
+                    balance_logger.info(str('buy    ,' + log_str).format(
                                                     thread_number,
                                                     exch_1.name[:5],
                                                     coin_pair,
@@ -730,9 +728,8 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                     
             selling_order_demo(exch_1, coin_pair, bid, accumulated_base_bought, fee_0)
                     
-            log_str = 'c-thrd {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
-                    
-            balance_logger.info(str('sell ,' + log_str).format(
+            log_str = ' thrd {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
+            balance_logger.info(str('sell-c ,' + log_str).format(
                                                     thread_number,
                                                     exch_1.name[:5],
                                                     coin_pair,
@@ -746,6 +743,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                                                     balances.get_coin_balance(exch_1.name, quote_coin)['amount'],
                                                     balances.get_coin_balance(exch_1.name, quote_coin)['amount'] - pre_trade_balance_quote,
                                                     balances.get_full_balance() - g_storage.initial_balance))
+            
             accumulated_base_bought = 0
 
             pre_trade_balance_base  = balances.get_coin_balance(exch_0.name, base_coin)['amount']
@@ -753,7 +751,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                     
             buying_order_demo (exch_0, coin_pair, ask, accumulated_base_sold, fee_1)
 
-            balance_logger.info(str('buy  ,' + log_str).format(
+            balance_logger.info(str('buy-c  ,' + log_str).format(
                                                     thread_number,
                                                     exch_0.name[:5],
                                                     coin_pair,
@@ -767,6 +765,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                                                     balances.get_coin_balance(exch_0.name, quote_coin)['amount'],
                                                     balances.get_coin_balance(exch_0.name, quote_coin)['amount'] - pre_trade_balance_quote,
                                                     balances.get_full_balance() - g_storage.initial_balance))
+            
             accumulated_base_sold = 0
 
             iterations = 1
