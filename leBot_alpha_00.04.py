@@ -20,7 +20,7 @@ DEMO_MODE = False                           # TODO: implement a demo mode using 
 DEBUG = True
 DEBUG_LEVEL = 0                             # noy used by now
 
-LOG_PROFITS = False
+LOG_PROFITS = True
 
 USE_THREADING = True                        # only used in load markers function, TODO: to remove
 
@@ -29,8 +29,8 @@ TRADING_SIZE = 20                          # $20
 
 EXPLOIT_THREAD_DELAY = 15                   # exploit thread period
 MAX_THREADS = 30                            # limiting the number of threads
-PROFIT_THR_TO_OPEN_POSITIONS =  +0.0045     # values for testing the bot
-PROFIT_THR_TO_CLOSE_POSITIONS = +0.0035     # gap
+PROFIT_THR_TO_OPEN_POSITIONS =  +0.0015     # values for testing the bot
+PROFIT_THR_TO_CLOSE_POSITIONS = +0.0005     # gap
 MAX_ITER_TO_EXIT = 50
 TRADES_TO_ALLOW_CLOSING = 1
 
@@ -60,10 +60,11 @@ def setup_logger(name, log_file, level=logging.INFO):
     """
         To setup as many loggers as you want
     """
-    handler = logging.FileHandler(log_file, mode='w')
+    handler = logging.FileHandler(log_file, mode='a')
     # rotate into 10 files when file reaches 50MB
     handler = RotatingFileHandler(log_file, maxBytes=50*1024*1024, backupCount=10)
     handler.setFormatter(formatter)
+    handler.doRollover()
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -134,7 +135,6 @@ def create_exchanges():
 
     exchanges = [coinbasepro, poloniex, bittrex, binance, bitfinex, kucoin, bitmex, okex]
     timing_limits = [.35,      .35,       1,     .35,        2,        1,      1,    .35]  # requesting period limit per exchange
-    # timing_limits = [0, 0, 0, 0, 0, 0, 0, 0]  # rateLimit Enabled on exchange
 
     for exchange, timing in zip(exchanges, timing_limits):
         g_storage.timer[exchange.name] = [0, timing]
@@ -210,16 +210,14 @@ class Balance:
         self.exchanges[exchange][coin].update({'in_use': False})
         return 0
 
-    def update_change(self, coin, change):
+    def update_change(self, exchange: str, coin: str, change: float):
         flag = False
-        for exchange in self.exchanges:
-            if coin in self.exchanges[exchange]:
-                flag = True
-                self.exchanges[exchange][coin]['change'] = change
-        if flag:
-            return 0
+        # for exchange in self.exchanges:
+        if coin in self.exchanges[exchange]:
+            self.exchanges[exchange][coin]['change'] = change
+            return True
         print('Error: that coin not in this balance')
-        return -1
+        return False
 
     def update_balance(self, exchange: str, coin: str, new_balance: float):
         if exchange in self.exchanges:
@@ -292,7 +290,7 @@ def init_balances(exchanges):
 
         balances.set_balance(exchange.name, 'DASH',    1.38  * 0,           74.80,         .3     * SIZE_FACTOR)
         balances.set_balance(exchange.name, 'NEO',    13.8   * 0,            7.59,         2.75   * SIZE_FACTOR)
-        balances.set_balance(exchange.name, 'PIVX',  333.34  * 0,            0.25,         6.7    * SIZE_FACTOR)
+        balances.set_balance(exchange.name, 'PIVX',  333.34  * 0,            0.259917,    76.92    * SIZE_FACTOR)
         balances.set_balance(exchange.name, 'NANO',  182.0   * 0,            0.55,        36.36   * SIZE_FACTOR)
         balances.set_balance(exchange.name, 'ADA',  3030.34  * 0,            0.034,      606.06   * SIZE_FACTOR)
 
@@ -301,7 +299,42 @@ def init_balances(exchanges):
         balances.set_balance(exchange.name, 'EUR',  100.0    * FACTOR,       1.094,       20.0    * SIZE_FACTOR)
         balances.set_balance(exchange.name, 'USD',  100.0    * FACTOR,       1.0,         20.0    * SIZE_FACTOR)
 
+    balances_to_USDC_updater(exchanges)
     return 0
+
+
+def basic_threads():
+    """ launches threads for basic operations """
+    
+    return True
+
+
+def balances_to_USDC_updater(exchanges):
+    """ updates the cryptos price to USDC """
+    # TODO: fix for not suported coins
+    exchange = exchanges[7]
+    flag = True
+    for coin_name, coin in zip(balances.exchanges[exchange.name].keys(), balances.exchanges[exchange.name].values()):
+        try:
+            last = exchange.fetch_ticker(str(coin_name + '/USDC'))['last']
+        except Exception:
+            pass
+        try:
+            last = exchange.fetch_ticker(str(coin_name + '/USDT'))['last']
+        except Exception:
+            logger.info('not possible update coin {} change to USDT '.format(coin_name))
+            flag = False
+            continue
+
+        for exchage_ in exchanges:
+           balances.update_change(exchage_.name, coin_name, last)
+
+    return flag
+
+
+def markets_updater():
+
+    return True
 
 
 def pairs_generator(exchanges):
@@ -503,16 +536,17 @@ def exploit_pair(exch_pair, coin_pair, reverse=False):
         launches the exploit thread
     """
     if len(g_storage.exploit_threads) < MAX_THREADS:
+        g_storage.exploit_thread_number += 1
         if not reverse:
             logger.info('launching {} and {} thread for {}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
-            thread = threading.Thread(target=exploit_thread, args=(exch_pair[0], exch_pair[1], coin_pair))
+            thread = threading.Thread(target=exploit_thread, name=g_storage.exploit_thread_number, args=(exch_pair[0], exch_pair[1], coin_pair))
         else:
             logger.info('launching {} and {} thread for {}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
-            thread = threading.Thread(target=exploit_thread, args=(exch_pair[1], exch_pair[0], coin_pair))
+            thread = threading.Thread(target=exploit_thread, name=g_storage.exploit_thread_number, args=(exch_pair[1], exch_pair[0], coin_pair))
         # launch the thread
         # thread = threading.Thread(target=exploit_thread, args=(exch_pair, coin_pair, reverse))
         g_storage.exploit_threads.append(thread)
-        g_storage.exploit_thread_number += 1
+        thread.setName
         thread.start()
         return 0
 
@@ -634,9 +668,9 @@ def exploit_thread(exch_0, exch_1, coin_pair):
         profit = (bid - ask)/ask - (fee_0 + fee_1)
 
         # logs results
-        log_str = ' thrd {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
+        # log_str = ' thrd {:3}, {:6}, {:9}, bid/ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
 
-        with open(filename, 'w') as csv_file:
+        with open(filename, 'w+') as csv_file:
 
 
             if profit >= PROFIT_THR_TO_OPEN_POSITIONS:
@@ -647,46 +681,8 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                     logger.info('Thread {}: ordering selling-buying on \t{} or \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
 
                     # calls selling routine
-                    pre_trade_balance_base  = balances.get_coin_balance(exch_0.name, base_coin)['amount']
-                    pre_trade_balance_quote = balances.get_coin_balance(exch_0.name, quote_coin)['amount']
-                    
                     selling_order_demo(exch_0, coin_pair, bid, trading_size_0, fee_0)
-                    
-                    balance_logger.info(str('sell   ,' + log_str).format(
-                                                    thread_number,
-                                                    exch_0.name[:5],
-                                                    coin_pair,
-                                                    bid,
-                                                    trading_size_0,
-                                                    fee_0,
-                                                    pre_trade_balance_base,
-                                                    balances.get_coin_balance(exch_0.name, base_coin)['amount'],
-                                                    balances.get_coin_balance(exch_0.name, base_coin)['amount'] - pre_trade_balance_base,
-                                                    pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exch_0.name, quote_coin)['amount'],
-                                                    balances.get_coin_balance(exch_0.name, quote_coin)['amount'] - pre_trade_balance_quote,
-                                                    balances.get_full_balance() - g_storage.initial_balance))
-
-                    # calls buying routine
-                    pre_trade_balance_base  = balances.get_coin_balance(exch_1.name, base_coin)['amount']
-                    pre_trade_balance_quote = balances.get_coin_balance(exch_1.name, quote_coin)['amount']
-                    
                     buying_order_demo (exch_1, coin_pair, ask, trading_size_1, fee_1)
-
-                    balance_logger.info(str('buy    ,' + log_str).format(
-                                                    thread_number,
-                                                    exch_1.name[:5],
-                                                    coin_pair,
-                                                    ask,
-                                                    trading_size_1,
-                                                    fee_1,
-                                                    pre_trade_balance_base,
-                                                    balances.get_coin_balance(exch_1.name, base_coin)['amount'],
-                                                    balances.get_coin_balance(exch_1.name, base_coin)['amount'] - pre_trade_balance_base,
-                                                    pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exch_1.name, quote_coin)['amount'],
-                                                    balances.get_coin_balance(exch_1.name, quote_coin)['amount'] - pre_trade_balance_quote,
-                                                    balances.get_full_balance() - g_storage.initial_balance))
 
                     accumulated_base_sold += trading_size_0 * (1 + fee_0)
                     accumulated_base_bought += trading_size_1
@@ -705,7 +701,6 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                             (bid - ask)/ask,
                             (fee_0+fee_1),
                             (bid - ask)/ask - (fee_0+fee_1)))
-
 
                 else:
                     logger.warning('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
@@ -726,48 +721,10 @@ def exploit_thread(exch_0, exch_1, coin_pair):
 
             logger.info('Thread {} CLOSING POSITIONS'.format(thread_number))
 
-            pre_trade_balance_base  = balances.get_coin_balance(exch_1.name, base_coin)['amount']
-            pre_trade_balance_quote = balances.get_coin_balance(exch_1.name, quote_coin)['amount']
-                    
             selling_order_demo(exch_1, coin_pair, bid, accumulated_base_bought, fee_0)
-                    
-            balance_logger.info(str('sell-c ,' + log_str).format(
-                                                    thread_number,
-                                                    exch_1.name[:5],
-                                                    coin_pair,
-                                                    bid,
-                                                    accumulated_base_bought,
-                                                    fee_0,
-                                                    pre_trade_balance_base,
-                                                    balances.get_coin_balance(exch_1.name, base_coin)['amount'],
-                                                    balances.get_coin_balance(exch_1.name, base_coin)['amount'] - pre_trade_balance_base,
-                                                    pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exch_1.name, quote_coin)['amount'],
-                                                    balances.get_coin_balance(exch_1.name, quote_coin)['amount'] - pre_trade_balance_quote,
-                                                    balances.get_full_balance() - g_storage.initial_balance))
-            
             accumulated_base_bought = 0
 
-            pre_trade_balance_base  = balances.get_coin_balance(exch_0.name, base_coin)['amount']
-            pre_trade_balance_quote = balances.get_coin_balance(exch_0.name, quote_coin)['amount']
-                    
-            buying_order_demo (exch_0, coin_pair, ask, accumulated_base_sold, fee_1)
-
-            balance_logger.info(str('buy-c  ,' + log_str).format(
-                                                    thread_number,
-                                                    exch_0.name[:5],
-                                                    coin_pair,
-                                                    ask,
-                                                    accumulated_base_sold,
-                                                    fee_1,
-                                                    pre_trade_balance_base,
-                                                    balances.get_coin_balance(exch_0.name, base_coin)['amount'],
-                                                    balances.get_coin_balance(exch_0.name, base_coin)['amount'] - pre_trade_balance_base,
-                                                    pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exch_0.name, quote_coin)['amount'],
-                                                    balances.get_coin_balance(exch_0.name, quote_coin)['amount'] - pre_trade_balance_quote,
-                                                    balances.get_full_balance() - g_storage.initial_balance))
-            
+            buying_order_demo (exch_0, coin_pair, ask, accumulated_base_sold, fee_1)            
             accumulated_base_sold = 0
 
             iterations = 1
@@ -794,28 +751,75 @@ def exploit_thread(exch_0, exch_1, coin_pair):
 
 def selling_order_demo(exchange, coin_pair, bid, size, fee):
     """ simulate a selling order """
+
+    log_str = ' thrd {:3}, {:6}, {:9}, bid, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
+    thread_number = threading.currentThread().name
+
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
-
+    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['amount']
+    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['amount']
+    
+    # ----------------------------------------------------------------------
     quote_amount = size * bid
     base_amount  = - (size + fee * size)
+    # ----------------------------------------------------------------------
 
     balances.update_balance(exchange.name, base_coin, base_amount)
     balances.update_balance(exchange.name, quote_coin, quote_amount)
+
+    balance_logger.info(str('sell   ,' + log_str).format(
+                                                    thread_number,
+                                                    exchange.name[:5],
+                                                    coin_pair,
+                                                    bid,
+                                                    size,
+                                                    fee,
+                                                    pre_trade_balance_base,
+                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'] - pre_trade_balance_base,
+                                                    pre_trade_balance_quote,
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'] - pre_trade_balance_quote,
+                                                    balances.get_full_balance() - g_storage.initial_balance))
+
 
     return 0
 
 
 def buying_order_demo(exchange, coin_pair, ask, size, fee):
     """ simulate a buying order """
+
+    log_str = ' thrd {:3}, {:6}, {:9}, ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
+    thread_number = threading.currentThread().name
+
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
-
+    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['amount']
+    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['amount']
+    
+    # ----------------------------------------------------------------------
     quote_amount = - (size + fee * size) * ask
     base_amount  = size
+    # ----------------------------------------------------------------------
 
     balances.update_balance(exchange.name, base_coin, base_amount)
     balances.update_balance(exchange.name, quote_coin, quote_amount)
+
+    balance_logger.info(str('buy    ,' + log_str).format(
+                                                    thread_number,
+                                                    exchange.name[:5],
+                                                    coin_pair,
+                                                    ask,
+                                                    size,
+                                                    fee,
+                                                    pre_trade_balance_base,
+                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'] - pre_trade_balance_base,
+                                                    pre_trade_balance_quote,
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'] - pre_trade_balance_quote,
+                                                    balances.get_full_balance() - g_storage.initial_balance))
 
     return 0
 
@@ -865,6 +869,7 @@ def balancer(exch_pair, coin_pair, expctd_profit=0):
 
     exchange_0 = exch_pair[0]
     exchange_1 = exch_pair[1]
+    waitting_time = 0.7
 
     pairs_avail_0 = [pair for pair in exchange_0.markets.keys()]
     pairs_avail_1 = [pair for pair in exchange_1.markets.keys()]
@@ -906,6 +911,7 @@ def balancer(exch_pair, coin_pair, expctd_profit=0):
             symbol = str(coin_name + '/' + coin_dest_exch_0)
             amount = coin['amount'] * 1/2
             selling_price = get_selling_price(exchange_0, symbol, amount)
+            time.sleep(waitting_time)
             if selling_price:
                 exchange_0_avail_sell.append([symbol, coin['amount'], coin['amount'] * coin['change'], selling_price])
         
@@ -913,6 +919,7 @@ def balancer(exch_pair, coin_pair, expctd_profit=0):
             symbol = str(coin_dest_exch_0 + '/' + coin_name)
             amount = coin['amount'] * 1/2
             buying_price = get_buying_price(exchange_0, symbol, amount)
+            time.sleep(waitting_time)
             if buying_price:
                 exchange_0_avail_buy.append([symbol, coin['amount']/buying_price, coin['amount'] * coin['change'], buying_price])
 
@@ -922,6 +929,7 @@ def balancer(exch_pair, coin_pair, expctd_profit=0):
             symbol = str(coin_name + '/' + coin_dest_exch_1)
             amount = coin['amount'] * 1/2
             selling_price = get_selling_price(exchange_1, symbol, amount)
+            time.sleep(waitting_time)
             if selling_price:
                 exchange_1_avail_sell.append([symbol, coin['amount'], coin['amount'] * coin['change'], selling_price])
         
@@ -929,6 +937,7 @@ def balancer(exch_pair, coin_pair, expctd_profit=0):
             symbol = str(coin_dest_exch_1 + '/' + coin_name)
             amount = coin['amount'] * 1/2
             buying_price = get_buying_price(exchange_1, symbol, amount)
+            time.sleep(waitting_time)
             if buying_price:
                 exchange_1_avail_buy.append([symbol, coin['amount']/buying_price, coin['amount'] * coin['change'], buying_price])
 
@@ -1029,6 +1038,7 @@ def main():
     g_storage.initial_balance = balances.get_full_balance()
 
     # launch_console()
+    # launch basic threads: prices updater, market_updater, console...
 
     list_balances()
 
