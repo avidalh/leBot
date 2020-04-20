@@ -31,7 +31,7 @@ TRADING_SIZE = 20                          # $20
 
 EXPLOIT_THREAD_DELAY = 15                   # exploit thread period
 MAX_THREADS = 30                            # limiting the number of threads
-PROFIT_THR_TO_OPEN_POSITIONS =  +0.0035     # values for testing the bot
+PROFIT_THR_TO_OPEN_POSITIONS =  +0.0080     # values for testing the bot
 PROFIT_THR_TO_CLOSE_POSITIONS = +0.0005     # gap
 MAX_ITER_TO_EXIT = 50
 TRADES_TO_ALLOW_CLOSING = 1
@@ -601,7 +601,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
     filename = './logs/' + exch_0.name + '-' + exch_1.name + '-' + coin_pair.replace('/', '-') + '.csv'
 
     thread_number = g_storage.exploit_thread_number
-    logger.info('Thread {} STARTING'.format(thread_number))
+    logger.info('arb_{} STARTING'.format(thread_number))
 
     # movements accumulated
     accumulated_base_sold = 0  # on exch 1
@@ -659,7 +659,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             fee_1 = 0.005
 
         if not bid or not ask:
-            logger.info('Thread {}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+            logger.info('arb_{}: not enough volume for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
             # delay time with a bit of stagger to avoid always falling on same point
             time.sleep(random.randint(EXPLOIT_THREAD_DELAY + random.randint(-5, 5)))
             continue
@@ -672,15 +672,15 @@ def exploit_thread(exch_0, exch_1, coin_pair):
             mean_profit = acc_profit/iterations
             
             if (base_coin_balance_0 >= trading_size_0 * (1+fee_0)) and (quote_coin_balance_1 >= (trading_size_1 * (1+fee_1) * ask)):
-                logger.info('Thread {}: ordering selling-buying on \t{}/{} \t{}, profit \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair, profit))
+                logger.info('arb_{}: ordering selling-buying on \t{}/{} \t{}, profit \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair, profit))
 
                 # calls selling routine
-                balance_logger.info('Thread {}, {}: sell {} of {}, profit {}'.format(thread_number, exch_0.name, trading_size_0, coin_pair, profit))
+                balance_logger.info('arb_{}, {}: sell {} of {}, profit {}'.format(thread_number, exch_0.name, trading_size_0, coin_pair, profit))
                 # ----------------------------------------------------------------------
                 selling_order_demo(exch_0, coin_pair, bid, trading_size_0, fee_0)
                 # ----------------------------------------------------------------------
 
-                balance_logger.info('Thread {}, {}: buy  {} of {}, profit {}'.format(thread_number, exch_1.name, trading_size_1, coin_pair, profit))
+                balance_logger.info('arb_{}, {}: buy  {} of {}, profit {}'.format(thread_number, exch_1.name, trading_size_1, coin_pair, profit))
                 # ----------------------------------------------------------------------
                 buying_order_demo (exch_1, coin_pair, ask, trading_size_1, fee_1)
                 # ----------------------------------------------------------------------
@@ -693,29 +693,29 @@ def exploit_thread(exch_0, exch_1, coin_pair):
                 ready_to_exit = False
 
             else:
-                logger.warning('Thread {}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
-                logger.warning('Thread {} trying to RE-BALANCE...'.format(thread_number))
+                logger.warning('arb_{}: not enough cash for ordering selling-buying on \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+                logger.warning('arb_{} trying to RE-BALANCE...'.format(thread_number))
 
                 if not balancer([exch_0, exch_1], coin_pair):
-                    logger.error('Thread {} REBALANCING was not possible'.format(thread_number))
+                    logger.error('arb_{} REBALANCING was not possible'.format(thread_number))
                 else:
-                    logger.info('Thread {} REBALANCING successful'.format(thread_number))
+                    logger.info('arb_{} REBALANCING successful'.format(thread_number))
                 
         else:
-            logger.info('Thread {}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair, profit))
+            logger.info('arb_{}: trading not possible in \t{} and \t{} for \t{}, profit: \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair, profit))
 
             iterations_failed += 1
 
         if profit <= PROFIT_THR_TO_CLOSE_POSITIONS and accumulated_base_sold >= TRADES_TO_ALLOW_CLOSING * trading_size_1:
             # closing positions
-            logger.info('Thread {} CLOSING POSITIONS in \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
+            logger.info('arb_{} CLOSING POSITIONS in \t{} and \t{} for \t{}'.format(thread_number, exch_0.name, exch_1.name, coin_pair))
 
-            balance_logger.info('Thread {}, {}: sell {} of {}, profit {}'.format(thread_number, exch_1.name, accumulated_base_bought, coin_pair, profit))
+            balance_logger.info('arb_{}, {}: sell {} of {}, profit {}'.format(thread_number, exch_1.name, accumulated_base_bought, coin_pair, profit))
             # ----------------------------------------------------------------------
             selling_order_demo(exch_1, coin_pair, bid, accumulated_base_bought, fee_0)
             # ----------------------------------------------------------------------
 
-            balance_logger.info('Thread {}, {}: buy {} of {}, profit {}'.format(thread_number, exch_0.name, accumulated_base_sold, coin_pair, profit))
+            balance_logger.info('arb_{}, {}: buy {} of {}, profit {}'.format(thread_number, exch_0.name, accumulated_base_sold, coin_pair, profit))
             # ----------------------------------------------------------------------
             buying_order_demo (exch_0, coin_pair, ask, accumulated_base_sold, fee_1)
             # ----------------------------------------------------------------------
@@ -731,7 +731,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
 
         else:
             if iterations_failed >= MAX_ITER_TO_EXIT and ready_to_exit:
-                logger.info('Thread {} EXITING'.format(thread_number))
+                logger.info('arb_{} EXITING'.format(thread_number))
                 # unlock coins
                 balances.unlock_coin(exch_0.name, base_coin)
                 balances.unlock_coin(exch_0.name, quote_coin)
@@ -749,7 +749,7 @@ def exploit_thread(exch_0, exch_1, coin_pair):
 def selling_order_demo(exchange, coin_pair, bid, size, fee):
     """ simulate a selling order """
 
-    log_str = ' thrd {:3}, {:6}, {:9}, bid, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBaseBal, {:+12.5f}, fBaseBal, {:+12.5f}, iQuoteBal, {:+12.5f}, fQuoteBal, {:+12.5f}'
+    log_str = ' arb_{:3}, {:6}, {:9}, bid, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBaseBal, {:+12.5f}, fBaseBal, {:+12.5f}, iQuoteBal, {:+12.5f}, fQuoteBal, {:+12.5f}'
     thread_number = threading.currentThread().name
 
     base_coin = coin_pair.split('/')[0]
@@ -784,7 +784,7 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
     """ simulate a buying order """
 
     # log_str = ' thrd {:3}, {:6}, {:9}, ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBBal, {:+12.5f}, fBBal, {:+12.5f}, prof, {:+12.5f}, iQBal, {:+12.5f}, fQBal, {:+12.5f}, prof, {:+12.5f}, accProf, {:+11.5f}'
-    log_str = ' thrd {:3}, {:6}, {:9}, ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBaseBal, {:+12.5f}, fBaseBal, {:+12.5f}, iQuoteBal, {:+12.5f}, fQuoteBal, {:+12.5f}'
+    log_str = ' arb_{:3}, {:6}, {:9}, ask, {:10.5f}, size, {:9.5f}, fee, {:7.5f}, iBaseBal, {:+12.5f}, fBaseBal, {:+12.5f}, iQuoteBal, {:+12.5f}, fQuoteBal, {:+12.5f}'
     thread_number = threading.currentThread().name
 
     base_coin = coin_pair.split('/')[0]
