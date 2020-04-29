@@ -10,8 +10,8 @@ with open('logs/balances.log','r') as csvfile:
         x.append(float(row[19]))
         y.append(float(row[21]))
 
-plt.step(range(len(x)), y, label='acc Profit')
-plt.step(range(len(x)), x, label='Op Profit')
+plt.step(range(len(x)), y, label='accumulated profit')
+plt.step(range(len(x)), x, label='operations profit')
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('acc Profit')
