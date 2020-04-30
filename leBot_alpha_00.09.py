@@ -40,10 +40,10 @@ RATE_LIMIT_FACTOR = 1.10  #1.05             # exchange rate limit factor to stay
 MAX_THREADS = 50                            # limiting the number of threads
 
 # thresholding
-PROFIT_THR_TO_OPEN_POSITIONS =   0.0001     #+0.000200     # open position threshold (values for testing the bot)
-PROFIT_THR_TO_CLOSE_POSITIONS = -0.0001     #-0.000100     # close positions threshold. Close all the positions openend by the arb thread.
-ENTRY_THR_FACTOR   = 0.9  #1.2              # factor times fees to start a thread
-OPERATE_THR_FACTOR = 0.9  #2.0              # factor times fees to start a trade/arbitrage
+PROFIT_THR_TO_OPEN_POSITIONS =  -0.0001     #+0.000200     # open position threshold (values for testing the bot)
+PROFIT_THR_TO_CLOSE_POSITIONS = +0.0001     #-0.000100     # close positions threshold. Close all the positions openend by the arb thread.
+ENTRY_THR_FACTOR   = 0.1  #1.2              # factor times fees to start a thread
+OPERATE_THR_FACTOR = 0.2  #2.0              # factor times fees to start a trade/arbitrage
 
 MAX_ITER_TO_EXIT = 240                      # 240rep / 4rep/min = 60 min   # number of empty iterations to kill the thread
 TRADES_TO_ALLOW_CLOSING = 1                 # how many trades to allow closing positions
@@ -308,7 +308,7 @@ def init_balances(exchanges):
         initializes an instance of Balance class
         used in demo mode
     """
-    FACTOR = 3.333
+    FACTOR = 10  #3.333
     for exchange in exchanges:
         for coin in g_storage.coins_white_list:
             balances.set_balance(exchange.name, coin, 0, 0, 0)
@@ -560,6 +560,10 @@ def cross(exch_pair, coin_pair, coin_pairs_avail):
             # ----------------------------------------------------------------------
             exploit_pair(exch_pair, coin_pair, coin_pairs_avail, reverse=True)
             # ----------------------------------------------------------------------
+        else:
+            opp_logger.info(',R  NOPE       , \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+
 
     else:
         logger.error('some bids or aks are NULL, \t{} \t{} \t{} \t{} \t{} \t{} \t{}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
@@ -634,45 +638,61 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
 
     while True:
 
-        def stableCoin_stableCoin(stableCoin_0, stableCoin_1, accStbC_0, accStbC_1):  # stable coin - stable coin trading option
+        def stableCoin_stableCoin(stableCoin_0, stableCoin_1):  # stable coin - stable coin trading option
             pair_to_buy_0 = quote_coin + '/' + stableCoin_0
+            pair_to_buy_0_r = stableCoin_0 + '/' + quote_coin
             pair_to_buy_1 = base_coin  + '/' + stableCoin_1
+            pair_to_buy_1_r = stableCoin_1 + '/' + base_coin
+
             trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
             trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-            ask_0 = get_buying_price(exch_0, pair_to_buy_0, trading_size_0)
-            ask_1 = get_buying_price(exch_1, pair_to_buy_1, trading_size_1)
-            if ask_0 and ask_1:
+            
+            # TODO: Change the logic here: use exch market to check if the pair is available:
+            ask_0 = False
+            if pair_to_buy_0 in exch_0.markets.keys():
+                ask_0 = get_buying_price(exch_0, pair_to_buy_0, trading_size_0)
+                bid_0 = False
+            if not ask_0:
+                bid_0 = get_selling_price(exch_0, pair_to_buy_0_r, trading_size_0)
+                ask_0 = False
+
+            ask_1 = False
+            if pair_to_buy_1 in exch_1.markets.keys():
+                ask_1 = get_buying_price(exch_1, pair_to_buy_1, trading_size_1)
+                bid_1 = False
+            if not ask_1:
+                bid_1 = get_selling_price(exch_1, pair_to_buy_1_r, trading_size_1)
+                ask_1 = False
+
+            nonlocal result_0
+            nonlocal result_1
+            if ask_0 and ask_1 or ask_0 and bid_1 or bid_0 and bid_1 or ask_1 and bid_0:
                 # ----------------------------------------------------------------------
-                buying_order_demo (exch_0, pair_to_buy_0, ask_0, trading_size_0, fee_0)  # BTC
-                buying_order_demo (exch_1, pair_to_buy_1, ask_1, trading_size_1, fee_1)  # EUR
+                if ask_0: buying_order_demo (exch_0, pair_to_buy_0, ask_0, trading_size_0, fee_0)
+                elif bid_0: selling_order_demo (exch_0, pair_to_buy_0_r, bid_0, trading_size_0, fee_0)
+                if ask_1: buying_order_demo (exch_1, pair_to_buy_1, ask_1, trading_size_1, fee_1)
+                elif bid_1: selling_order_demo (exch_1, pair_to_buy_1_r, bid_1, trading_size_1, fee_1)
                 # ----------------------------------------------------------------------
                 balances.update_profit(exch_0.name, base_coin, trading_size_0 * profit)  # update profit on one of the exchanges <- TODO
 
-                # accumulated_base_sold += trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts EUR->quote_coin to close position 
-                # accumulated_base_bought += trading_size_1              # TODO: create an new storage for this moved amounts EUR->base_coin to close position
-                accStbC_0 += balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] * (1+fee_0)
-                accStbC_1 += balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] * (1+fee_1)
-
+                result_0 += balances.get_coin_balance(exch_0.name, stableCoin_0)['trading_size'] * (1+fee_0)
+                result_1 += balances.get_coin_balance(exch_1.name, stableCoin_1)['trading_size'] * (1+fee_1)
+                
+                nonlocal iterations
+                nonlocal ready_to_exit
                 iterations += 1        # TODO: remove?
                 ready_to_exit = False  # TODO: remove?
             else:
+                result_0 = 0
+                result_1 = 0
                 logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-            
-            return True
 
         loop_time = time.time()
         now = datetime.now()
 
-        # waits for the exchanges rate limits and gets the order books
-        # if (g_storage.timer[exch_0.name][1] - (time.time() - g_storage.timer[exch_0.name][0])) > 0:
-        #     time.sleep(g_storage.timer[exch_0.name][1] - (time.time() - g_storage.timer[exch_0.name][0]))
-        
         if  exch_0.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_0.lastRestRequestTimestamp) > 0:
             time.sleep((exch_0.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_0.lastRestRequestTimestamp))/1000)
 
-        # if (g_storage.timer[exch_1.name][1] - (time.time() - g_storage.timer[exch_1.name][1])) > 0:
-        #     time.sleep(g_storage.timer[exch_1.name][1] - (time.time() - g_storage.timer[exch_1.name][1]))
-        
         if  exch_1.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_1.lastRestRequestTimestamp) > 0:
             time.sleep((exch_1.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_1.lastRestRequestTimestamp))/1000)
         
@@ -734,7 +754,7 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
             # c = trading_size_1 * (1+fee_1) * ask
             # d = balances.get_coin_balance(exch_1.name, 'USD')['amount'] >= trading_size_1 * (1+fee_1)
 
-            # option 0: ideal: base and quote
+            # option 0: ideal: base and quote OK
             if base_coin_balance_0 >= TRADING_SIZE_MARGIN * trading_size_0 * (1+fee_0) and quote_coin_balance_1 >= TRADING_SIZE_MARGIN *(trading_size_1 * (1+fee_1) * ask):  # this is the ideal situation: money in both coins
                 logger.info('{} OPTION 0, ideal situation: cash in base coin in first exch and cash in quote coin in second exch'.format(thread_name))
                 logger.info('{}: ordering selling-buying profit \t{}'.format(thread_name, profit))
@@ -758,16 +778,13 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                 ready_to_exit = False
 
             # TODO: finish this block:
-            # option 1: USD and quote
+            # option 1: USD and quote OK
             elif balances.get_coin_balance(exch_0.name, 'USD')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and quote_coin_balance_1 >= TRADING_SIZE_MARGIN * (trading_size_1 * (1+fee_1) * ask) \
                 and quote_coin + '/USD' in exch_0.markets.keys():
                     logger.info('{} OPTION 1 cash in USD in first exch and cash in quote coin in second exch'.format(thread_name))
                     
                     # TODO: exch0: buy quote coin using USD, exch1: buy base coin (using quote)
-                    # 0: profitability study, 1: cancel or execute the op.
-                    # get the best bid and ask for that amount
-                    
                     pair_to_buy = quote_coin + '/USD'
                     option_1_trading_size = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
                     option_1_ask = get_buying_price(exch_0, pair_to_buy, option_1_trading_size)
@@ -787,7 +804,7 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
                     
-            # option 2: base and USD
+            # option 2: base and USD OK
             elif base_coin_balance_0 >= TRADING_SIZE_MARGIN * trading_size_0 * (1+fee_0) \
                 and balances.get_coin_balance(exch_1.name, 'USD')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and base_coin + '/USD' in exch_1.markets.keys():
@@ -814,147 +831,66 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
                     
-            # option 3: USD and USD
+            # option 3: USD and USD OK
             elif balances.get_coin_balance(exch_0.name, 'USD')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and balances.get_coin_balance(exch_1.name, 'USD')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and quote_coin + '/USD' in exch_0.markets.keys() \
                 and base_coin + '/USD' in exch_1.markets.keys():
+                    result_0 = 0
+                    result_1 = 0
 
                     stableCoin_stableCoin('USD', 'USD', acc_quote_USD_bought, acc_base_USD_bought)  # function closure (function in function)
+                    
+                    acc_quote_USD_bought, acc_base_USD_bought = result_0, result_1
 
                     logger.info('{} OPTION 3 cash in USD coin in first exch and cash in USD in second exch'.format(thread_name))
-                    
-                    # TODO: exch0: buy quote using USD exch1: buy base using USD
-                    # pair_to_buy_0 = quote_coin + '/USD'
-                    # pair_to_buy_1 = base_coin + '/USD'
-                    # option_3_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_3_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_3_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_3_trading_size_0)
-                    # option_3_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_3_trading_size_1)
-                    # if option_3_ask_0 and option_3_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_3_ask_0, option_3_trading_size_0, fee_0)  # USD
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_3_ask_1, option_3_trading_size_1, fee_1)  # USD
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_3_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
 
-                    #     # accumulated_base_sold += option_3_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_3_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position 
-                    #     acc_quote_USD_bought += TRADING_SIZE * (1+fee_0)
-                    #     acc_base_USD_bought += TRADING_SIZE * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-                    
             # option 4: USD and BTC
             elif balances.get_coin_balance(exch_0.name, 'USD')['amount'] >= TRADING_SIZE \
                 and balances.get_coin_balance(exch_1.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_1.name, 'BTC')['trading_size'] \
                 and quote_coin + '/USD' in exch_0.markets.keys() \
-                and base_coin + '/BTC' in exch_1.markets.keys():
-
-                    stableCoin_stableCoin('USD', 'BTC', acc_quote_USD_bought, acc_base_BTC_bought)  # function closure (function in function)
-                
-                    logger.info('{} OPTION 4 cash in USD coin in first exch and cash in BTC in second exch'.format(thread_name))
+                and (base_coin + '/BTC' in exch_1.markets.keys() or 'BTC/' + base_coin in exch_1.markets.keys()):
+                    result_0 = 0
+                    result_1 = 0
                     
-                    # TODO: exch0: buy quote using USD exch1: buy base using BTC
-                    # pair_to_buy_0 = quote_coin + '/USD'
-                    # pair_to_buy_1 = base_coin + '/BTC'
-                    # option_4_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_4_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_4_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_4_trading_size_0)
-                    # option_4_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_4_trading_size_1)
-                    # if option_4_ask_0 and option_4_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_4_ask_0, option_4_trading_size_0, fee_0)  # USD
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_4_ask_1, option_4_trading_size_1, fee_1)  # BTC
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_4_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
-
-                    #     # accumulated_base_sold += option_4_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_4_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position 
-                    #     acc_quote_USD_bought += TRADING_SIZE * (1+fee_0)
-                    #     acc_base_BTC_bought += balances.get_coin_balance(exch_1.name, 'BTC')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
+                    stableCoin_stableCoin('USD', 'BTC')  # function closure (function in function)
+                
+                    acc_quote_USD_bought, acc_base_USD_bought = result_0, result_1
+                    
+                    logger.info('{} OPTION 4 cash in USD coin in first exch and cash in BTC in second exch'.format(thread_name))
                     
             # option 5: BTC and USD
             elif balances.get_coin_balance(exch_0.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'USD')['amount'] >= TRADING_SIZE\
-                and quote_coin + '/BTC' in exch_0.markets.keys() \
+                and (quote_coin + '/BTC' in exch_0.markets.keys() or 'BTC/' + quote_coin in exch_0.markets.keys()) \
                 and base_coin + '/USD' in exch_1.markets.keys():
-
-                    stableCoin_stableCoin('BTC', 'USD', acc_quote_BTC_bought, acc_base_USD_bought)  # function closure (function in function)
+                    result_0 = 0
+                    result_1 = 0
+                    
+                    stableCoin_stableCoin('BTC', 'USD')  # function closure (function in function)
+                    
+                    acc_quote_BTC_bought, acc_base_USD_bought = result_0, result_1
 
                     logger.info('{} OPTION 5 cash in BTC coin in first exch and cash in USD in second exch'.format(thread_name))
-                    
-                    # # TODO: exch0: buy quote using BTC exch1: buy base using USD
-                    # pair_to_buy_0 = quote_coin + '/BTC'
-                    # pair_to_buy_1 = base_coin + '/USD'
-                    # option_5_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_5_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_5_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_5_trading_size_0)
-                    # option_5_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_5_trading_size_1)
-                    # if option_5_ask_0 and option_5_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_5_ask_0, option_5_trading_size_0, fee_0)  # BTC
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_5_ask_1, option_5_trading_size_1, fee_1)  # USD
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_5_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
-
-                    #     # accumulated_base_sold += option_5_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_5_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position
-                    #     acc_quote_BTC_bought += balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] * (1+fee_0)
-                    #     acc_base_USD_bought += TRADING_SIZE * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
                     
             # option 6: BTC and BTC
             elif balances.get_coin_balance(exch_0.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_1.name, 'BTC')['trading_size']\
-                and quote_coin + '/BTC' in exch_0.markets.keys() \
-                and base_coin + '/BTC' in exch_1.markets.keys():
+                and (quote_coin + '/BTC' in exch_0.markets.keys() or 'BTC/' + quote_coin in exch_0.markets.keys()) \
+                and (base_coin + '/BTC' in exch_1.markets.keys() or 'BTC/' + base_coin in exch_1.markets.keys()):
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('BTC', 'BTC', acc_quote_BTC_bought, acc_base_BTC_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('BTC', 'BTC')  # function closure (function in function)
+
+                    acc_quote_BTC_bought, acc_base_BTC_bought = result_0, result_1
 
                     logger.info('{} OPTION 6 cash in BTC coin in first exch and cash in BTC in second exch'.format(thread_name))            
                     
-                    # TODO exch0: buy quote using BTC exch1: buy base using BTC
-                    # pair_to_buy_0 = quote_coin + '/BTC'
-                    # pair_to_buy_1 = base_coin + '/BTC'
-                    # option_6_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_6_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_6_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_6_trading_size_0)
-                    # option_6_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_6_trading_size_1)
-                    # if option_6_ask_0 and option_6_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_6_ask_0, option_6_trading_size_0, fee_0)  # BTC
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_6_ask_1, option_6_trading_size_1, fee_1)  # BTC
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_6_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
-
-                    #     # accumulated_base_sold += option_6_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_6_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position
-                    #     acc_quote_BTC_bought += balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] * (1+fee_0)
-                    #     acc_base_BTC_bought += balances.get_coin_balance(exch_1.name, 'BTC')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-                    
-            # TODO: option 7: base and BTC
+            # TODO: option 7: base and BTC  (FINISH THE SECOND OPTION SELLING BTC TO OBTAIN BASE IN THE SECOND EXCHANGE)
             elif base_coin_balance_0 >= TRADING_SIZE_MARGIN * trading_size_0 * (1+fee_0) \
                 and balances.get_coin_balance(exch_1.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_1.name, 'BTC')['trading_size']\
-                and quote_coin + '/BTC' in exch_0.markets.keys() \
-                and base_coin + '/BTC' in exch_1.markets.keys():
+                and (base_coin + '/BTC' in exch_1.markets.keys() or 'BTC/' + base_coin in exch_1.markets.keys()):
                     logger.info('{} OPTION 7 cash in BTC coin in first exch and cash in BTC in second exch'.format(thread_name))            
                     # TODO exch0: buy quote using BTC exch1: buy base using BTC
                     pair_to_buy_1 = base_coin + '/BTC'
@@ -974,10 +910,10 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                         ready_to_exit = False
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-            # TODO: option 8: BTC and quote
+            # TODO: option 8: BTC and quote (FINISH THE SECOND OPTION SELLING BTC TO OBTAIN QUOTE IN THE FIRST EXCHANGE)
             elif balances.get_coin_balance(exch_0.name, 'BTC')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and quote_coin_balance_1 >= TRADING_SIZE_MARGIN * (trading_size_1 * (1+fee_1) * ask) \
-                and quote_coin + '/BTC' in exch_0.markets.keys():
+                and (quote_coin + '/BTC' in exch_0.markets.keys() or 'BTC/' + quote_coin  in exch_0.markets.keys()):
                     logger.info('{} OPTION 8 cash in BTC in first exch and cash in quote coin in second exch'.format(thread_name))
                     
                     # TODO: exch0: buy quote coin using BTC, exch1: buy base coin (using quote)
@@ -1002,7 +938,7 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
 
-            # TODO: option 9 : base and EUR
+            # option 9 : base and EUR
             elif base_coin_balance_0 >= TRADING_SIZE_MARGIN * trading_size_0 * (1+fee_0) \
                 and balances.get_coin_balance(exch_1.name, 'EUR')['amount'] >= TRADING_SIZE_MARGIN * balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] \
                 and base_coin + '/EUR' in exch_1.markets.keys():
@@ -1022,22 +958,19 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
 
                         accumulated_base_sold += trading_size_0 * (1 + fee_0)
                         acc_base_EUR_bought += balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] * (1+fee_1)
-                        # accumulated_base_bought += option_9_trading_size  # TODO: create an new storage for this moved amounts EUR->base_coin to close position 
 
                         iterations += 1
                         ready_to_exit = False
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
                     
-            # TODO: option 10: EUR and quote
+            # option 10: EUR and quote
             elif balances.get_coin_balance(exch_0.name, 'EUR')['amount'] >= TRADING_SIZE_MARGIN * TRADING_SIZE \
                 and quote_coin_balance_1 >= TRADING_SIZE_MARGIN * (trading_size_1 * (1+fee_1) * ask) \
                 and quote_coin + '/EUR' in exch_0.markets.keys():
                     logger.info('{} OPTION 10 cash in EUR in first exch and cash in quote coin in second exch'.format(thread_name))
                     
                     # TODO: exch0: buy quote coin using EUR, exch1: buy base coin (using quote)
-                    # 0: profitability study, 1: cancel or execute the op.
-                    # get the best bid and ask for that amount
                     
                     pair_to_buy = quote_coin + '/EUR'
                     option_10_trading_size = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
@@ -1057,175 +990,76 @@ def exploit_thread(exch_0, exch_1, coin_pair, coin_pairs_avail):
                     else:
                         logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
 
-            # TODO: option 11: EUR and EUR
+            # option 11: EUR and EUR
             elif balances.get_coin_balance(exch_0.name, 'EUR')['amount'] >= balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'EUR')['amount'] >= balances.get_coin_balance(exch_1.name, 'EUR')['trading_size']\
                 and quote_coin + '/EUR' in exch_0.markets.keys() \
                 and base_coin + '/EUR' in exch_1.markets.keys():
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('EUR', 'EUR', acc_quote_EUR_bought, acc_base_EUR_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('EUR', 'EUR')  # function closure (function in function)
 
+                    acc_quote_EUR_bought, acc_base_EUR_bought = result_0, result_1
+                    
                     logger.info('{} OPTION 11 cash in EUR coin in first exch and cash in EUR in second exch'.format(thread_name))            
                     
-                    # TODO exch0: buy quote using EUR exch1: buy base using EUR
-                    # pair_to_buy_0 = quote_coin + '/EUR'
-                    # pair_to_buy_1 = base_coin + '/EUR'
-                    # option_10_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_10_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_10_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_10_trading_size_0)
-                    # option_10_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_10_trading_size_1)
-                    # if option_10_ask_0 and option_10_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_10_ask_0, option_10_trading_size_0, fee_0)  # EUR
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_10_ask_1, option_10_trading_size_1, fee_1)  # EUR
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_10_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
-
-                    #     # accumulated_base_sold += option_10_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_10_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position
-                    #     acc_quote_EUR_bought += balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] * (1+fee_0)
-                    #     acc_base_EUR_bought += balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-                    
-            # TODO: option 12: EUR and USD
+            # option 12: EUR and USD
             elif balances.get_coin_balance(exch_0.name, 'EUR')['amount'] >= balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'USD')['amount'] >= balances.get_coin_balance(exch_1.name, 'USD')['trading_size']\
                 and quote_coin + '/EUR' in exch_0.markets.keys() \
                 and base_coin + '/USD' in exch_1.markets.keys():
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('EUR', 'USD', acc_quote_EUR_bought, acc_base_USD_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('EUR', 'USD')  # function closure (function in function)
+
+                    acc_quote_EUR_bought, acc_base_USD_bought = result_0, result_1
 
                     logger.info('{} OPTION 12 cash in EUR coin in first exch and cash in EUR in second exch'.format(thread_name))            
                     
-                    # TODO exch0: buy quote using EUR exch1: buy base using EUR
-                    # pair_to_buy_0 = quote_coin + '/EUR'
-                    # pair_to_buy_1 = base_coin + '/USD'
-                    # option_12_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_12_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_12_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_12_trading_size_0)
-                    # option_12_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_12_trading_size_1)
-                    # if option_12_ask_0 and option_12_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_12_ask_0, option_12_trading_size_0, fee_0)  # EUR
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_12_ask_1, option_12_trading_size_1, fee_1)  # USD
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_12_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
-
-                    #     # accumulated_base_sold += option_12_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_12_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position
-                    #     acc_quote_EUR_bought += balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] * (1+fee_0)
-                    #     acc_base_USD_bought += balances.get_coin_balance(exch_1.name, 'USD')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-
-            # TODO: option 13: USD and EUR
+            # option 13: USD and EUR
             elif balances.get_coin_balance(exch_0.name, 'USD')['amount'] >= balances.get_coin_balance(exch_0.name, 'USD')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'EUR')['amount'] >= balances.get_coin_balance(exch_1.name, 'EUR')['trading_size']\
                 and quote_coin + '/USD' in exch_0.markets.keys() \
                 and base_coin + '/EUR' in exch_1.markets.keys():
-                    logger.info('{} OPTION 13 cash in USD coin in first exch and cash in EUR in second exch'.format(thread_name))            
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('USD', 'EUR', acc_quote_USD_bought, acc_base_EUR_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('USD', 'EUR')  # function closure (function in function)
 
-                    # TODO exch0: buy quote using EUR exch1: buy base using EUR
-                    # pair_to_buy_0 = quote_coin + '/USD'
-                    # pair_to_buy_1 = base_coin + '/EUR'
-                    # option_13_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_13_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_13_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_13_trading_size_0)
-                    # option_13_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_13_trading_size_1)
-                    # if option_13_ask_0 and option_13_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_13_ask_0, option_13_trading_size_0, fee_0)  # USD
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_13_ask_1, option_13_trading_size_1, fee_1)  # EUR
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_13_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
+                    acc_quote_USD_bought, acc_base_EUR_bought = result_0, result_1
+                    
+                    logger.info('{} OPTION 13 cash in USD coin in first exch and cash in EUR in second exch'.format(thread_name))            
 
-                    #     # accumulated_base_sold += option_13_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts USD->quote_coin to close position 
-                    #     # accumulated_base_bought += option_13_trading_size_1              # TODO: create an new storage for this moved amounts USD->base_coin to close position
-                    #     acc_quote_USD_bought += balances.get_coin_balance(exch_0.name, 'USD')['trading_size'] * (1+fee_0)
-                    #     acc_base_EUR_bought += balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-            
-            # TODO: option 14: EUR and BTC
+            # option 14: EUR and BTC
             elif balances.get_coin_balance(exch_0.name, 'EUR')['amount'] >= balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_1.name, 'BTC')['trading_size']\
                 and quote_coin + '/EUR' in exch_0.markets.keys() \
-                and base_coin + '/BTC' in exch_1.markets.keys():
-                    logger.info('{} OPTION 14 cash in EUR coin in first exch and cash in EUR in second exch'.format(thread_name))            
+                and (base_coin + '/BTC' in exch_1.markets.keys() or 'BTC/' + base_coin in exch_1.markets.keys()):
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('EUR', 'BTC', acc_quote_EUR_bought, acc_base_BTC_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('EUR', 'BTC')  # function closure (function in function)
+                    
+                    acc_quote_EUR_bought, acc_base_BTC_bought = result_0, result_1
 
-                    # TODO exch0: buy quote using EUR exch1: buy base using EUR
-                    # pair_to_buy_0 = quote_coin + '/EUR'
-                    # pair_to_buy_1 = base_coin + '/BTC'
-                    # option_14_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_14_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_14_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_14_trading_size_0)
-                    # option_14_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_14_trading_size_1)
-                    # if option_14_ask_0 and option_14_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_14_ask_0, option_14_trading_size_0, fee_0)  # EUR
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_14_ask_1, option_14_trading_size_1, fee_1)  # BTC
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_14_trading_size_0 * profit)  # update profit on one of the exchanges<- TODO
+                    logger.info('{} OPTION 14 cash in EUR coin in first exch and cash in EUR in second exch'.format(thread_name))            
 
-                    #     # accumulated_base_sold += option_14_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts BTC->quote_coin to close position 
-                    #     # accumulated_base_bought += option_14_trading_size_1              # TODO: create an new storage for this moved amounts BTC->base_coin to close position
-                    #     acc_quote_EUR_bought += balances.get_coin_balance(exch_0.name, 'EUR')['trading_size'] * (1+fee_0)
-                    #     acc_base_BTC_bought += balances.get_coin_balance(exch_1.name, 'BTC')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-
-            # TODO: option 15: BTC and EUR
+            # option 15: BTC and EUR
             elif balances.get_coin_balance(exch_0.name, 'BTC')['amount'] >= balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] \
                 and balances.get_coin_balance(exch_1.name, 'EUR')['amount'] >= TRADING_SIZE\
-                and quote_coin + '/BTC' in exch_0.markets.keys() \
+                and (quote_coin + '/BTC' in exch_0.markets.keys() or 'BTC/' + quote_coin in exch_0.markets.keys()) \
                 and base_coin + '/EUR' in exch_1.markets.keys():
+                    result_0 = 0
+                    result_1 = 0
                     
-                    stableCoin_stableCoin('BTC', 'EUR', acc_quote_BTC_bought, acc_base_EUR_bought)  # function closure (function in function)
+                    stableCoin_stableCoin('BTC', 'EUR')  # function closure (function in function)
+                    
+                    acc_quote_BTC_bought, acc_base_EUR_bought = result_0, result_1
 
                     logger.info('{} OPTION 15 cash in BTC coin in first exch and cash in EUR in second exch'.format(thread_name))
-                    
-                    # TODO: exch0: buy quote using BTC exch1: buy base using EUR
-                    # pair_to_buy_0 = quote_coin + '/BTC'
-                    # pair_to_buy_1 = base_coin + '/EUR'
-                    # option_15_trading_size_0 = balances.get_coin_balance(exch_0.name, quote_coin)['trading_size']
-                    # option_15_trading_size_1 = balances.get_coin_balance(exch_1.name, base_coin)['trading_size']
-                    # option_15_ask_0 = get_buying_price(exch_0, pair_to_buy_0, option_15_trading_size_0)
-                    # option_15_ask_1 = get_buying_price(exch_1, pair_to_buy_1, option_15_trading_size_1)
-                    # if option_15_ask_0 and option_15_ask_1:
-                    #     # ----------------------------------------------------------------------
-                    #     buying_order_demo (exch_0, pair_to_buy_0, option_15_ask_0, option_15_trading_size_0, fee_0)  # BTC
-                    #     buying_order_demo (exch_1, pair_to_buy_1, option_15_ask_1, option_15_trading_size_1, fee_1)  # EUR
-                    #     # ----------------------------------------------------------------------
-                    #     balances.update_profit(exch_0.name, base_coin, option_15_trading_size_0 * profit)  # update profit on one of the exchanges <- TODO
-
-                    #     # accumulated_base_sold += option_15_trading_size_0 * (1 + fee_0)  # TODO: create an new storage for this moved amounts EUR->quote_coin to close position 
-                    #     # accumulated_base_bought += option_15_trading_size_1              # TODO: create an new storage for this moved amounts EUR->base_coin to close position
-                    #     acc_quote_BTC_bought += balances.get_coin_balance(exch_0.name, 'BTC')['trading_size'] * (1+fee_0)
-                    #     acc_base_EUR_bought += balances.get_coin_balance(exch_1.name, 'EUR')['trading_size'] * (1+fee_1)
-
-                    #     iterations += 1
-                    #     ready_to_exit = False
-                    # else:
-                    #     logger.warning('{}: possible rate limit violation, take care at this working conditions!'.format(thread_name))
-                    
-
+            
             # TODO: include options for EUR
             # the strategie is using stable coins for trading always going back the operations. 
 
@@ -1318,8 +1152,6 @@ def baseCoin_stableCoin():
     
     
     return True
-
-
 
 
 def selling_order_demo(exchange, coin_pair, bid, size, fee):
