@@ -16,7 +16,7 @@ MAX_THREADS = 50                            # limiting the number of threads
 
 # thresholding
 ENTRY_THR_FACTOR   = 1.0  #1.2              # factor times fees to start a thread
-OPERATE_THR_FACTOR = 1.1  #2.0              # factor times fees to start a trade/arbitrage
+OPERATE_THR_FACTOR = 1.0  #2.0              # factor times fees to start a trade/arbitrage
 PROFIT_THR_TO_OPEN_POSITIONS =  +0.0030     #+0.000200     # open position threshold (values for testing the bot)
 PROFIT_THR_TO_CLOSE_POSITIONS = +0.0000     #-0.000100     # close positions threshold. Close all the positions openend by the arb thread.
 NON_DIRECT_TRADE_PROFIT_THR =   +0.0060

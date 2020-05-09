@@ -58,11 +58,11 @@ def create_exchanges():
         }
     })
 
-    # bitmex = ccxt.bitmex({
-    #     'apiKey': api_keys.bitmex['apiKey'],
-    #     'secret': api_keys.bitmex['secret'],
-    #     'enableRateLimit': True,
-    # })
+    bitmex = ccxt.bitmex({
+        'apiKey': api_keys.bitmex['apiKey'],
+        'secret': api_keys.bitmex['secret'],
+        'enableRateLimit': True,
+    })
 
     okex = ccxt.okex({
         'apiKey': api_keys.okex['apiKey'],
@@ -70,7 +70,7 @@ def create_exchanges():
         'enableRateLimit': True,
     })
 
-    exchanges =     [cex, poloniex, bittrex, binance, bitfinex, kucoin, kraken, coinbasepro]
+    exchanges =     [coinbasepro, cex, poloniex, bittrex, binance, bitfinex, kucoin, kraken, bitmex, okex]
 
     return exchanges
 

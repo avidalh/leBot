@@ -56,14 +56,6 @@ def pairs_generator(exchanges):
         TODO: look for a math function to perform the distribution
         TODO: currently uses 8 exchanges, to insert more a new empairement lists must be created! :-/
     """
-    # pairs = list()
-    # if len(exchanges) == 8:
-    #     for i, j in zip([0, 2, 4, 6, 0, 1, 4, 5, 0, 1, 4, 5, 0, 1, 2, 3, 0, 1, 2, 3, 1, 0, 3, 2, 0, 1, 2, 3],
-    #                     [1, 3, 5, 7, 2, 3, 6, 7, 3, 2, 7, 6, 4, 5, 6, 7, 5, 4, 7, 6, 7, 6, 5, 4, 7, 6, 5, 4]):
-    #         pairs.append([exchanges[i], exchanges[j]])
-    # else:
-    #     pairs = list(combinations(exchanges, 2))
-
     return list(combinations(exchanges, 2))
 
 
@@ -326,7 +318,7 @@ def main():
     init_balances(exchanges)
     coins_prices_updater(exchanges)
 
-    fake_balances(exchanges, 1000)  # TODO: to be removed. (Just to test)
+    # fake_balances(exchanges, 1000)  # TODO: to be removed. (Just to test)
 
     storage.initial_balance = balances.get_full_balance()
     exch_pairs = pairs_generator(exchanges)
