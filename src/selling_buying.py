@@ -17,8 +17,8 @@ def selling_order_demo(exchange, coin_pair, bid, size, fee):
 
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
-    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['amount']
-    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['amount']
+    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['total']
+    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['total']
     full_balance_i = balances.get_full_balance()
 
     # ----------------------------------------------------------------------
@@ -41,9 +41,9 @@ def selling_order_demo(exchange, coin_pair, bid, size, fee):
                                                     size,
                                                     fee,
                                                     pre_trade_balance_base,
-                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, base_coin)['total'],
                                                     pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['total'],
                                                     full_balance_f - full_balance_i,
                                                     storage.accumProfit)
                                                     )
@@ -59,8 +59,8 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
 
     base_coin = coin_pair.split('/')[0]
     quote_coin = coin_pair.split('/')[1]
-    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['amount']
-    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['amount']
+    pre_trade_balance_base  = balances.get_coin_balance(exchange.name, base_coin)['total']
+    pre_trade_balance_quote = balances.get_coin_balance(exchange.name, quote_coin)['total']
     full_balance_i = balances.get_full_balance()
 
     # ----------------------------------------------------------------------
@@ -81,9 +81,9 @@ def buying_order_demo(exchange, coin_pair, ask, size, fee):
                                                     size,
                                                     fee,
                                                     pre_trade_balance_base,
-                                                    balances.get_coin_balance(exchange.name, base_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, base_coin)['total'],
                                                     pre_trade_balance_quote,
-                                                    balances.get_coin_balance(exchange.name, quote_coin)['amount'],
+                                                    balances.get_coin_balance(exchange.name, quote_coin)['total'],
                                                     full_balance_f - full_balance_i,
                                                     storage.accumProfit)
                                                     )
@@ -94,12 +94,11 @@ def get_selling_price(exchange, symbol, amount):
     """ returns the best price for selling the amount of the coin's symbol in any exchange
         else: returns a False
     """
-    # TODO: insert waiting loop and try/exceptions
     if  exchange.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exchange.lastRestRequestTimestamp) > 0:
         try:
             time.sleep((exchange.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exchange.lastRestRequestTimestamp))/1000)
-        except:
-            pass
+        except Exception as e:
+            print(e)
     try:
         orderbook = exchange.fetch_order_book(symbol)
     except:
@@ -119,12 +118,11 @@ def get_buying_price(exchange, symbol, amount):
     """ returns the best price for buying the amount of the coin's symbol in any exchange
         else: returns a False
     """
-    # TODO: insert waiting loop and try/exceptions
     if  exchange.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exchange.lastRestRequestTimestamp) > 0:
         try:
             time.sleep((exchange.rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exchange.lastRestRequestTimestamp))/1000)
-        except:
-            pass
+        except Exception as e:
+            print(e)
     try:
         orderbook = exchange.fetch_order_book(symbol)
     except:

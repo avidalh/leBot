@@ -1,4 +1,6 @@
 import ccxt
+# import asyncio
+# import ccxt.async_support as ccxt
 import src.api_keys as api_keys
 
 def create_exchanges():
@@ -70,7 +72,7 @@ def create_exchanges():
         'enableRateLimit': True,
     })
 
-    exchanges =     [coinbasepro, cex, poloniex, bittrex, binance, bitfinex, kucoin, kraken, bitmex, okex]
+    exchanges =[coinbasepro, cex, poloniex, bittrex, binance, bitfinex, kucoin, kraken, okex, bitmex]
 
     return exchanges
 

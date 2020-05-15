@@ -1,5 +1,6 @@
 import json
 import threading
+import os
 
 from src.params import TRADING_SIZE, EXPLOIT_THREAD_DELAY, PROFIT_THR_TO_OPEN_POSITIONS 
 from src.params import PROFIT_THR_TO_CLOSE_POSITIONS, ENTRY_THR_FACTOR, OPERATE_THR_FACTOR
@@ -27,6 +28,8 @@ def mini_console(exchanges):
             - 'sbf [exchName]': shows a json formatted detailed balance, if exchName present: same information but for the specified exchange
             - 'sel': show list of exch pairs/coins locked
             - 'sat': show active threads
+            - 'sts': show threads status
+            - 'exit': terminate bot and return to OS
             tuning params:
             - 'set0 value': -> TRADING_SIZE
             - 'set1 value': -> PROFIT_THR_TO_OPEN_POSITIONS
@@ -51,8 +54,11 @@ def mini_console(exchanges):
     global MAX_THREADS
     global NON_DIRECT_TRADE_PROFIT_THR
     global NON_DIRECT_CLOSING_PROFIT_THR
+
+    last_commands = []
     while True:
         input_str = input('(leBot) > ')
+        last_commands.append(input_str)  # TODO: implementing a last commands repeat...
         input_parsed = parse(input_str)
 
         if len(input_parsed) == 1:
@@ -104,10 +110,20 @@ def mini_console(exchanges):
                     print(e)
             
             elif input_command == 'sat':
-                print('active treads {}'.format(len(storage.exploit_threads)))
+                print('active threads {}'.format(len(storage.exploit_threads)))
                 for e in storage.exploit_threads:
                     print(e)
             
+            elif input_command == 'sts':
+                print('threads status:')
+                for e in storage.threads_status:
+                    print(e)
+
+            elif input_command == 'exit':
+                sure = input('bot to be killed, sure? ')
+                if sure == 'yes':
+                    os._exit(os.EX_OK)
+
             elif input_command == '?':
                 print(help_msg)
             

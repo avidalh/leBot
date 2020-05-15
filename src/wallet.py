@@ -4,8 +4,9 @@ from src.setup_logger import logger
 import requests
 import threading
 import time
+import json
 
-class Balance:
+class Wallet:
     """
         class to store the current balance
         TODO: implement a demo mode to use fake balances 
@@ -16,10 +17,10 @@ class Balance:
 
     def set_balance(self, exchange: str, coin: str, balance: float, change: float, trading_size: float):
         if exchange not in self.exchanges:
-            self.exchanges.update({exchange: {coin: {'amount': balance, 'change': change, 'trading_size': trading_size, 'in_use': False, 'acc_profit': 0}}})
+            self.exchanges.update({exchange: {coin: {'total': balance, 'free': balance, 'used': 0, 'change': change, 'trading_size': trading_size, 'in_use': False, 'acc_profit': 0}}})
         else:
             if coin not in self.exchanges[exchange]:
-                self.exchanges[exchange].update({coin: {'amount': balance, 'change': change, 'trading_size': trading_size, 'in_use': False, 'acc_profit': 0}})
+                self.exchanges[exchange].update({coin: {'total': balance, 'free': balance, 'used': 0, 'change': change, 'trading_size': trading_size, 'in_use': False, 'acc_profit': 0}})
             else:
                 print('Error: exchange already has that coin in its balance')
                 return -1
@@ -55,11 +56,11 @@ class Balance:
     def update_balance(self, exchange: str, coin: str, new_balance: float):
         if exchange in self.exchanges:
             if coin in self.exchanges[exchange]:
-                new_balance = self.exchanges[exchange][coin]['amount'] + new_balance
-                self.exchanges[exchange][coin].update({'amount': new_balance})
+                new_balance = self.exchanges[exchange][coin]['total'] + new_balance
+                self.exchanges[exchange][coin].update({'total': new_balance})
             else:
                 self.exchanges[exchange].update(
-                    {coin: {'amount': new_balance}})
+                    {coin: {'total': new_balance}})
         else:
             print('Error: exchange not in this balance')
             return -1
@@ -69,14 +70,14 @@ class Balance:
         acc = 0
         for exchange in self.exchanges:
             for coin in self.exchanges[exchange].values():
-                acc += coin['amount'] * coin['change']
+                acc += coin['total'] * coin['change']
         return acc
 
     def get_balance(self, exchange: str):
         if exchange in self.exchanges:
             acc = 0
             for coin in self.exchanges[exchange].values():
-                acc += coin['amount'] * coin['change']
+                acc += coin['total'] * coin['change']
             return acc
         else:
             print('Error: exchange not in this balance')
@@ -88,13 +89,13 @@ class Balance:
             for exchange, name in zip(self.exchanges, self.exchanges.keys()):
                 detail_exch = list()
                 for coin, coin_name in zip(self.exchanges[exchange].values(), self.exchanges[exchange].keys()):
-                    detail_exch.append({coin_name: {'amount': coin['amount'], 'change': coin['change'],'acc profit': coin['acc_profit']}})
+                    detail_exch.append({coin_name: {'total': coin['total'], 'change': coin['change'],'acc profit': coin['acc_profit']}})
                 detail.append({name: detail_exch})
             return detail
         else:
             detail_exch = list()
             for coin, coin_name in zip(self.exchanges[exchange].values(), self.exchanges[exchange].keys()):
-                detail_exch.append({coin_name: {'amount': coin['amount'], 'change': coin['change'], 'acc profit': coin['acc_profit']}})
+                detail_exch.append({coin_name: {'total': coin['total'], 'change': coin['change'], 'acc profit': coin['acc_profit']}})
             detail.append({exchange: detail_exch})
             return detail
 
@@ -104,10 +105,10 @@ class Balance:
 
     def get_coin_balance_usdt(self, exchange: str, coin: str):
         if exchange in self.exchanges:
-            return self.exchanges[exchange][coin]['amount'] * self.exchanges[exchange][coin]['change']
+            return self.exchanges[exchange][coin]['total'] * self.exchanges[exchange][coin]['change']
 
 
-balances = Balance()
+balances = Wallet()
 
 
 def init_balances(exchanges):
@@ -115,22 +116,24 @@ def init_balances(exchanges):
         initializes an instance of Balance class
         used in demo mode
     """
-    FACTOR = 10  #3.333
+    FACTOR = 3.33  #3.333
     for exchange in exchanges:
         for coin in storage.coins_white_list:
+            # initialize all coins to zero balance...
             balances.set_balance(exchange.name, coin, 0, 0, 0)
         
+        # update some coins balances
         balances.update_balance(exchange.name, 'BTC',  000.0133 * FACTOR)
         balances.update_balance(exchange.name, 'USD',  100.0000 * FACTOR)
         balances.update_balance(exchange.name, 'EUR',  100.0000 * FACTOR)
-        # initialize other coins to zero balance...
+        
         
     return 0
 
 
 def coins_prices_updater(exchanges):
-
     """ launches threads for basic operations """
+    
     logger.info('launching basic threads')
     logger.info('launching coin change updater')
     thread = threading.Thread(target=coins_prices_updater_thread, name='coinsPricesUpdaterThread', args=(exchanges,))

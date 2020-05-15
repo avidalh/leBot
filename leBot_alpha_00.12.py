@@ -7,7 +7,7 @@ from itertools import combinations
 # src/ imports
 from src.setup_logger import logger, balance_logger, balance_csv_logger, opp_logger
 from src.markets import load_markets,load_markets_, load_markets_thread, get_market_pairs
-from src.wallet import Balance, init_balances, balances, coins_prices_updater
+from src.wallet import Wallet, init_balances, balances, coins_prices_updater
 from src.params import (
     UPDATE_PRICES_PERIOD,
     RATE_LIMIT_FACTOR,
@@ -171,29 +171,40 @@ def cross(exch_pair, coin_pair, coin_pairs_avail):
     if  exch_pair[1].rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_pair[1].lastRestRequestTimestamp) > 0:
         time.sleep((exch_pair[1].rateLimit * RATE_LIMIT_FACTOR - (current_milli_time() - exch_pair[1].lastRestRequestTimestamp))/1000)
 
+    base_coin = coin_pair.split('/')[0]
+    quote_coin = coin_pair.split('/')[1]
+
+    tz_base = balances.get_coin_balance(exch_pair[0].name, base_coin)['trading_size']
+    # tz_quote = balances.get_coin_balance(exch_pair[1].name, quote_coin)['trading_size']
 
     try:  # fetch the first order book
-        orderbook_1 = exch_pair[0].fetch_order_book(coin_pair)
+        orderbook_0 = exch_pair[0].fetch_order_book(coin_pair)
     except Exception as e:
         logger.critical('problems loading order books, request error on \t{}'.format(exch_pair[0].name))
         logger.critical(e)
 
     try:  # and fetch the second order book
-        orderbook_2 = exch_pair[1].fetch_order_book(coin_pair)
+        orderbook_1 = exch_pair[1].fetch_order_book(coin_pair)
     except Exception as e:
         logger.critical('problems loading order books, request error on \t{}'.format(exch_pair[1].name))
         logger.critical(e)
     
     try:  # gets the bids and asks for each exchange
-        bid_1 = orderbook_1['bids'][0][0] if len(orderbook_1['bids']) > 0 else None
-        ask_1 = orderbook_1['asks'][0][0] if len(orderbook_1['asks']) > 0 else None
-        vol_bid_1 = orderbook_1['bids'][0][1] if len(orderbook_1['bids']) > 0 else None
-        vol_ask_1 = orderbook_1['asks'][0][1] if len(orderbook_1['asks']) > 0 else None
+        # bid_0 = orderbook_0['bids'][0][0] if len(orderbook_0['bids']) > 0 else None
+        # ask_0 = orderbook_0['asks'][0][0] if len(orderbook_0['asks']) > 0 else None
+        # vol_bid_0 = orderbook_0['bids'][0][1] if len(orderbook_0['bids']) > 0 else None
+        # vol_ask_0 = orderbook_0['asks'][0][1] if len(orderbook_0['asks']) > 0 else None
 
-        bid_2 = orderbook_2['bids'][0][0] if len(orderbook_2['bids']) > 0 else None
-        ask_2 = orderbook_2['asks'][0][0] if len(orderbook_2['asks']) > 0 else None
-        vol_bid_2 = orderbook_2['bids'][0][1] if len(orderbook_2['bids']) > 0 else None
-        vol_ask_2 = orderbook_2['asks'][0][1] if len(orderbook_2['asks']) > 0 else None
+        # bid_1 = orderbook_1['bids'][0][0] if len(orderbook_1['bids']) > 0 else None
+        # ask_1 = orderbook_1['asks'][0][0] if len(orderbook_1['asks']) > 0 else None
+        # vol_bid_1 = orderbook_1['bids'][0][1] if len(orderbook_1['bids']) > 0 else None
+        # vol_ask_1 = orderbook_1['asks'][0][1] if len(orderbook_1['asks']) > 0 else None
+
+        # 2020/5/13: fix: use trading size to avoid empty prices 
+        bid_0 = get_selling_price(exch_pair[0], coin_pair, tz_base)
+        bid_1 = get_selling_price(exch_pair[1], coin_pair, tz_base)
+        ask_0 = get_buying_price(exch_pair[0], coin_pair, tz_base)
+        ask_1 = get_buying_price(exch_pair[1], coin_pair, tz_base)
 
     except Exception as e:
         logger.error('not possible getting bids/asksfrom \t{} or \t{}'.format(exch_pair[0].name, exch_pair[1].name))
@@ -212,13 +223,13 @@ def cross(exch_pair, coin_pair, coin_pairs_avail):
         fee_2 = 0.005
 
     # check if there is an ipportunity of profit in both directions
-    if bid_1 and bid_2 and ask_1 and ask_2:
+    if bid_0 and bid_1 and ask_0 and ask_1:
 
         # entry threshold 1.2x above the fees:
-        if ((bid_1 - ask_2)/ask_2 - ENTRY_THR_FACTOR * (fee_1+fee_2)) >= PROFIT_THR_TO_OPEN_POSITIONS:
+        if ((bid_0 - ask_1)/ask_1 - ENTRY_THR_FACTOR * (fee_1+fee_2)) >= PROFIT_THR_TO_OPEN_POSITIONS:
 
-            opp_logger.info(',   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
-                    exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, vol_bid_1, ask_2, vol_ask_2, (bid_1 - ask_2)/ask_2, (fee_1+fee_2), (bid_1 - ask_2)/ask_2 - (fee_1+fee_2)))
+            opp_logger.info(',   OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[0].name, exch_pair[1].name, coin_pair, bid_0, ask_1, (bid_0 - ask_1)/ask_1, (fee_1+fee_2), (bid_0 - ask_1)/ask_1 - (fee_1+fee_2)))
 
             logger.info('locking exchanges \t{} and \t{} for \t{}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair))
 
@@ -228,10 +239,10 @@ def cross(exch_pair, coin_pair, coin_pairs_avail):
             # ----------------------------------------------------------------------
 
         # in the other direcction
-        elif ((bid_2 - ask_1)/ask_1 - ENTRY_THR_FACTOR * (fee_1+fee_2)) >= PROFIT_THR_TO_OPEN_POSITIONS:
+        elif ((bid_1 - ask_0)/ask_0 - ENTRY_THR_FACTOR * (fee_1+fee_2)) >= PROFIT_THR_TO_OPEN_POSITIONS:
 
-            opp_logger.info(',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
-                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_2, vol_bid_2, ask_1, vol_ask_1, (bid_2 - ask_1)/ask_1, (fee_1+fee_2), (bid_2 - ask_1)/ask_1 - (fee_1+fee_2)))
+            opp_logger.info(',R  OPPORTUNITY, \t{:12}, \t{:12}, \t{}, \t{}, \t{}, \t{:%}, \t{:%}, \t{:%}'.format(
+                    exch_pair[1].name, exch_pair[0].name, coin_pair, bid_1, ask_0, (bid_1 - ask_0)/ask_0, (fee_1+fee_2), (bid_1 - ask_0)/ask_0 - (fee_1+fee_2)))
 
             logger.info('locking exchanges \t{} and \t{} for \t{}'.format(exch_pair[1].name, exch_pair[0].name, coin_pair))
 
@@ -241,7 +252,7 @@ def cross(exch_pair, coin_pair, coin_pairs_avail):
             # ----------------------------------------------------------------------
 
     else:
-        logger.error('some bids or aks are NULL, \t{} \t{} \t{} \t{} \t{} \t{} \t{}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_1, ask_1, bid_2, ask_2))
+        logger.error('some bids or aks are NULL, \t{} \t{} \t{} \t{} \t{} \t{} \t{}'.format(exch_pair[0].name, exch_pair[1].name, coin_pair, bid_0, ask_0, bid_1, ask_1))
 
     return True
 
@@ -276,39 +287,29 @@ def exploit_pair(exch_pair, coin_pair, coin_pairs_avail, reverse=False, ):
     return False
 
 
-def list_balances(start=False, end=False):
-    if start:
-        balance_csv_logger.info('<')
-    detailed_balance = balances.get_detailed_balance()
-    for element in detailed_balance:
-        for key, value in zip(element.keys(), element.values()):
-            balance_csv_logger.info(', \t{:5}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}, \t{:+.5f}'.format(
-                key,
-                value[0]['BCH']['amount'],
-                value[1]['BTC']['amount'],
-                value[2]['ETH']['amount'],
-                value[3]['LTC']['amount'],
-                value[4]['EOS']['amount'],
-                value[5]['XMR']['amount'],
-                value[6]['XRP']['amount'],
-                value[7]['ZEC']['amount'],
+def dumper(balances):
+    thread = threading.Thread(target=dump_balances,
+                              name='balances dumper',
+                              args=(balances,))
+    thread.start()
 
-                value[8]['DASH']['amount'],
-                value[9]['NEO']['amount'],
-                value[10]['PIVX']['amount'],
-                value[11]['NANO']['amount'],
-                value[12]['ADA']['amount'],
 
-                value[13]['USDC']['amount'],
-                value[14]['USDT']['amount'],
-                value[15]['EUR']['amount'],
-                value[16]['USD']['amount']
-            ))
-    if end:
-        balance_csv_logger.info('>')
-
-    # return 0
-
+def dump_balances(balances):
+    """
+    dumps json strings with bot status to output files
+    """
+    while True:
+        with open('output/balance_status.json', 'w') as output:
+            bal_list = balances.get_detailed_balance()
+            for e in bal_list:
+                output.write(str(e).replace('\'', '\"') + '\n')
+        
+        with open('output/threads_status.json', 'w') as output:
+            for e in storage.threads_status:
+                output.write(str(e).replace('\'', '\"') + '\n')
+        
+        time.sleep(5)
+    
 
 def main():
     start_time = time.time()
@@ -317,8 +318,7 @@ def main():
     load_markets_(exchanges)
     init_balances(exchanges)
     coins_prices_updater(exchanges)
-
-    # fake_balances(exchanges, 1000)  # TODO: to be removed. (Just to test)
+    dumper(balances)
 
     storage.initial_balance = balances.get_full_balance()
     exch_pairs = pairs_generator(exchanges)

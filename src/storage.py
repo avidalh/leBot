@@ -14,5 +14,7 @@ class GlobalStorage:
         self.current_balance = 0
         self.prices_updated = False
         self.accumProfit = 0
+        self.threads_status = []
+
 
 storage = GlobalStorage()
